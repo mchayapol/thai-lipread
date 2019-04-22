@@ -1,2 +1,2 @@
 # Thai Lipread
-Customised machine lipreading for Thai.
+Customised machine lipreading for Thai. Collection of datasets and algorithms.
