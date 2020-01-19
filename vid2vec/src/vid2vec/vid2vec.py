@@ -301,8 +301,10 @@ def extract_lips(ifn):
 #   plt.imshow(frame[:, :, ::-1])
 
   import json as j
-  with open(ifn+".json","w") as f:
+  outputFilename = ifn+".json"
+  with open(outputFilename,"w") as f:
     j.dump(lip_features,f)
+  return outputFilename
   
    
 
@@ -324,7 +326,8 @@ def vid2vec(v):
     
   try:
     with open(v) as f:
-      extract_lips(v)
+      outputFilename = extract_lips(v)
+      return outputFilename
   except IOError:
     _logger.warn('File "{}" not accessible'.format(v))
     return -1
