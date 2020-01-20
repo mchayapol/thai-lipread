@@ -18,9 +18,12 @@ also be used as template for Python modules.
 
 Note: This skeleton file can be safely removed if not needed!
 """
-
+from multiprocessing import Process
+import os
 import argparse
 import sys
+import os
+import time
 import logging
 
 import face_recognition
@@ -179,6 +182,7 @@ def getTeethScore(mouthImage,lip_landmarks=None):
           
   return (hilightedMouthImage,lab,luv,lab_c,luv_c)
 
+  
 # draw_bounary
 def draw_bounary(facial_feature):
   # print(type(face_landmarks[facial_feature]),face_landmarks[facial_feature])
@@ -189,10 +193,34 @@ def draw_bounary(facial_feature):
 
   cv2.polylines(frame,points,True,(255,255,255),thickness=4)
   
+
+def compute_features(frame_number,frame,lip_features):
+  print("compute_features {}".format(frame_number))
+  start_time = time.time()
+  face_landmarks_list = face_recognition.face_landmarks(frame)
+  face_landmarks = face_landmarks_list[0]
+  mouthImage,lip_landmarks = getMouthImage(frame)
+  score = getTeethScore(mouthImage,lip_landmarks)
+  markedMouthImage = score[0]
+  lab_c = score[3]
+  luv_c = score[4]
+  
+  lip_features.append({
+      "frame_id": frame_number,
+      "top_lip": face_landmarks_list[0]['top_lip'],
+      "bottom_lip": face_landmarks_list[0]['bottom_lip'],
+      "teeth_appearance": {
+          "LAB": lab_c,
+          "LUV": luv_c
+      }
+  })
+  end_time = time.time()
+  print("\tcompute_features {}: {}".format(frame_number,(end_time-start_time)))
+
 # extract_lips
-def extract_lips(ifn):
+def extract_features(ifn,ofn,write_output_movie=False):
   print("Processing:",ifn)
-  ofn = ifn+"-output.avi" # It only works with AVI
+  # ofn = ifn+"-output.avi" # It only works with AVI
   
   input_movie = cv2.VideoCapture(ifn)
   if not input_movie.isOpened(): 
@@ -214,8 +242,10 @@ def extract_lips(ifn):
 
   fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
   # output_movie = cv2.VideoWriter(ofn, codec, fps, (frame_width, frame_height))
-  output_movie = cv2.VideoWriter(ofn, fourcc, fps, (frame_width, frame_height))
-  print("Output:",output_movie)
+
+  if write_output_movie:
+    output_movie = cv2.VideoWriter(ofn, fourcc, fps, (frame_width, frame_height))
+    print("Output:",output_movie)
   # output_movie.release()
 
   # Initialize variables
@@ -225,13 +255,14 @@ def extract_lips(ifn):
   lip_features = []
   frame = None
   observe_frame = 100
+  total_time = 0
+  processes = []
   while True:
-    # Grab a single frame of video
-    ret, frame = input_movie.read()
+    start_time = time.time()
+    
+    ret, frame = input_movie.read() # Grab a single frame of video
 
     frame_number += 1
-#     if frame_number < observe_frame-1: continue
-    
     # Quit when the input video file ends
     if not ret:
       break
@@ -240,32 +271,40 @@ def extract_lips(ifn):
     rgb_frame = frame[:, :, ::-1]
 
     # Find all the faces and face encodings in the current frame of video
-  #     face_locations = face_recognition.face_locations(rgb_frame, model="cnn")
-    face_landmarks_list = face_recognition.face_landmarks(rgb_frame)
+    # face_locations = face_recognition.face_locations(rgb_frame, model="cnn")
 
-    # Save lip features locations
-    # Assume only single face
-    face_landmarks = face_landmarks_list[0]
+    p = Process(target=compute_features, args=(frame_number,frame,lip_features,))
+    processes.append(p)
+    p.start()
+
+
+    
+#################################
+#     face_landmarks_list = face_recognition.face_landmarks(rgb_frame)
+
+#     # Save lip features locations
+#     # Assume only single face
+#     face_landmarks = face_landmarks_list[0]
     
 
-    mouthImage,lip_landmarks = getMouthImage(rgb_frame)
-    score = getTeethScore(mouthImage,lip_landmarks)
-#     print('LAB {}\nLUV {}'.format(score[3],score[4]))
+#     mouthImage,lip_landmarks = getMouthImage(rgb_frame)
+#     score = getTeethScore(mouthImage,lip_landmarks)
+# #     print('LAB {}\nLUV {}'.format(score[3],score[4]))
     
-    markedMouthImage = score[0]
-    lab_c = score[3]
-    luv_c = score[4]
+#     markedMouthImage = score[0]
+#     lab_c = score[3]
+#     luv_c = score[4]
     
-    lip_features.append({
-        "frame_id": frame_number,
-        "top_lip": face_landmarks_list[0]['top_lip'],
-        "bottom_lip": face_landmarks_list[0]['bottom_lip'],
-        "teeth_appearance": {
-            "LAB": lab_c,
-            "LUV": luv_c
-        }
-    })
-
+#     lip_features.append({
+#         "frame_id": frame_number,
+#         "top_lip": face_landmarks_list[0]['top_lip'],
+#         "bottom_lip": face_landmarks_list[0]['bottom_lip'],
+#         "teeth_appearance": {
+#             "LAB": lab_c,
+#             "LUV": luv_c
+#         }
+#     })
+######################
       # Let's trace out each facial feature in the image with a line!
   #     for facial_feature in face_landmarks.keys():
   #       draw_boundary(facial_feature)
@@ -278,33 +317,38 @@ def extract_lips(ifn):
     if frame_number % step_marker == 0:
       print(" %d/%d"%(frame_number,length))
 
-  #     i/len(some_list)*100," percent complete         \r",
-    
-    # Drawing mouth image on top of the face
-    # https://stackoverflow.com/questions/14063070/overlay-a-smaller-image-on-a-larger-image-python-opencv
-    x_offset = y_offset = float('inf')
-    for x,y in face_landmarks_list[0]['top_lip']:
-      x_offset = min(x_offset,x)
-      y_offset = min(y_offset,y)
-    
-    markedMouthImage = markedMouthImage[:, :, ::-1]
-    frame[y_offset:y_offset+markedMouthImage.shape[0], x_offset:x_offset+markedMouthImage.shape[1]] = markedMouthImage
-#     if frame_number == observe_frame: break
-   
-    output_movie.write(frame)
-
-
+    if write_output_movie:   
+    #     i/len(some_list)*100," percent complete         \r",      
+      # Drawing mouth image on top of the face
+      # https://stackoverflow.com/questions/14063070/overlay-a-smaller-image-on-a-larger-image-python-opencv
+      x_offset = y_offset = float('inf')
+      for x,y in face_landmarks_list[0]['top_lip']:
+        x_offset = min(x_offset,x)
+        y_offset = min(y_offset,y)
+      
+      markedMouthImage = markedMouthImage[:, :, ::-1]
+      frame[y_offset:y_offset+markedMouthImage.shape[0], x_offset:x_offset+markedMouthImage.shape[1]] = markedMouthImage
+  #     if frame_number == observe_frame: break     
+      output_movie.write(frame)
 #     output_movie.write(markedMouthImage)
+    end_time = time.time()
+    total_time += (end_time - start_time)
 
-  print()
-  output_movie.release()
+  for p in processes:
+    p.join()
+
+  print("Elapse Time: {}".format(total_time))
+  if write_output_movie:   
+    output_movie.release()
 #   plt.imshow(frame[:, :, ::-1])
 
   import json as j
-  outputFilename = ifn+".json"
-  with open(outputFilename,"w") as f:
+  # outputFilename = ifn+".json"
+  # with open(outputFilename,"w") as f:
+  with open(ofn,"w") as f:
     j.dump(lip_features,f)
-  return outputFilename
+  
+  # return outputFilename
   
    
 
@@ -326,8 +370,14 @@ def vid2vec(v):
     
   try:
     with open(v) as f:
-      outputFilename = extract_lips(v)
-      return outputFilename
+      current_dir = os.getcwd()
+      basename = os.path.basename(v)
+      sep = os.path.sep
+      ofn = "{}{}{}.json".format(current_dir,sep,basename)
+      print("\tOutput to "+ofn)
+      extract_features(v,ofn)
+
+      return ofn
   except IOError:
     _logger.warn('File "{}" not accessible'.format(v))
     return -1
@@ -353,7 +403,7 @@ def parse_args(args):
       dest="v",
       help="video filename",
       type=str,
-      metavar="STRING")        
+      metavar="FILENAME")        
   # parser.add_argument(
   #     dest="n",
   #     help="n-th Fibonacci number",
