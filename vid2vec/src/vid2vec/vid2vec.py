@@ -43,19 +43,20 @@ _logger = logging.getLogger(__name__)
 
 
 # getMouthImage (from TLR Teeth Appearance Calculation.ipynb)
-def getMouthImage(faceImage,margin=0):
+def getMouthImage(faceImage,face_landmarks=None,margin=0):
   # face_locations = face_recognition.face_locations(faceImage)
-  face_landmarks_list = face_recognition.face_landmarks(faceImage)
+  if face_landmarks == None:
+    face_landmarks = face_recognition.face_landmarks(faceImage)[0]  # Assume first face
 
   
   minx = miny = float('inf')
   maxx = maxy = float('-inf')
 
-  for x,y in face_landmarks_list[0]['top_lip']:
+  for x,y in face_landmarks['top_lip']:
     minx = min(minx,x)
     miny = min(miny,y)
 
-  for x,y in face_landmarks_list[0]['bottom_lip']:
+  for x,y in face_landmarks['bottom_lip']:
     maxx = max(maxx,x)
     maxy = max(maxy,y)
 
@@ -68,11 +69,11 @@ def getMouthImage(faceImage,margin=0):
       'bottom_lip': []
   }
 
-  for p in face_landmarks_list[0]['top_lip']:
+  for p in face_landmarks['top_lip']:
     p2 = (p[0] - minx, p[1] - miny)
     lip_landmarks['top_lip'].append(p2)
 
-  for p in face_landmarks_list[0]['bottom_lip']:
+  for p in face_landmarks['bottom_lip']:
     p2 = (p[0] - minx, p[1] - miny)
     lip_landmarks['bottom_lip'].append(p2)
 
@@ -198,17 +199,17 @@ def compute_features(frame_number,frame,lip_features):
   print("compute_features {}".format(frame_number))
   start_time = time.time()
   face_landmarks_list = face_recognition.face_landmarks(frame)
-  face_landmarks = face_landmarks_list[0]
-  mouthImage,lip_landmarks = getMouthImage(frame)
+  face_landmarks = face_landmarks_list[0] # assume first face found
+  mouthImage,lip_landmarks = getMouthImage(frame,face_landmarks=face_landmarks)
   score = getTeethScore(mouthImage,lip_landmarks)
-  markedMouthImage = score[0]
+  # markedMouthImage = score[0]
   lab_c = score[3]
   luv_c = score[4]
   
   lip_features.append({
       "frame_id": frame_number,
-      "top_lip": face_landmarks_list[0]['top_lip'],
-      "bottom_lip": face_landmarks_list[0]['bottom_lip'],
+      "top_lip": face_landmarks['top_lip'],
+      "bottom_lip": face_landmarks['bottom_lip'],
       "teeth_appearance": {
           "LAB": lab_c,
           "LUV": luv_c
@@ -257,12 +258,15 @@ def extract_features(ifn,ofn,write_output_movie=False):
   observe_frame = 100
   total_time = 0
   processes = []
+  start_time = time.time()    
   while True:
-    start_time = time.time()
+    
+    frame_number += 1
     
     ret, frame = input_movie.read() # Grab a single frame of video
+    # end_time = time.time()
+    # print("\tLoad frame {}: {}".format(frame_number,(end_time - start_time)))
 
-    frame_number += 1
     # Quit when the input video file ends
     if not ret:
       break
@@ -331,13 +335,13 @@ def extract_features(ifn,ofn,write_output_movie=False):
   #     if frame_number == observe_frame: break     
       output_movie.write(frame)
 #     output_movie.write(markedMouthImage)
-    end_time = time.time()
-    total_time += (end_time - start_time)
+  end_time = time.time()
 
   for p in processes:
     p.join()
 
-  print("Elapse Time: {}".format(total_time))
+  print("Elapse Time: {}".format(end_time - start_time))
+
   if write_output_movie:   
     output_movie.release()
 #   plt.imshow(frame[:, :, ::-1])
