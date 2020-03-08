@@ -16,3 +16,6 @@ python setup.py develop
 
 # Classification Model
 http://scikit-learn.sourceforge.net/stable/modules/hmm.html
+
+# Sample test calls
+vid2vec "D:\GoogleDrive-SCITECH\Research\lip-read\datasets\clips\v1.mp4"

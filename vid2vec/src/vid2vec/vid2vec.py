@@ -40,12 +40,13 @@ __license__ = "mit"
 _logger = logging.getLogger(__name__)
 
 
-
+lip_features = []
 
 # getMouthImage (from TLR Teeth Appearance Calculation.ipynb)
 def getMouthImage(faceImage,face_landmarks=None,margin=0):
-  # face_locations = face_recognition.face_locations(faceImage)
   if face_landmarks == None:
+    # face_locations = face_recognition.face_locations(faceImage,model='cnn')[0]    
+    # face_landmarks = face_recognition.face_landmarks(faceImage,face_locations=[face_locations])[0]  # Assume first face
     face_landmarks = face_recognition.face_landmarks(faceImage)[0]  # Assume first face
 
   
@@ -186,7 +187,7 @@ def getTeethScore(mouthImage,lip_landmarks=None):
   
 # draw_bounary
 def draw_bounary(facial_feature):
-  # print(type(face_landmarks[facial_feature]),face_landmarks[facial_feature])
+  # _logger.debug(type(face_landmarks[facial_feature]),face_landmarks[facial_feature])
   points = face_landmarks[facial_feature]
 
   points = np.array(points, np.int32)
@@ -195,8 +196,10 @@ def draw_bounary(facial_feature):
   cv2.polylines(frame,points,True,(255,255,255),thickness=4)
   
 
-def compute_features(frame_number,frame,lip_features):
-  print("compute_features {}".format(frame_number))
+def compute_features(frame_number,frame):
+  global lip_features
+
+  _logger.debug("compute_features {}".format(frame_number))
   start_time = time.time()
   face_landmarks_list = face_recognition.face_landmarks(frame)
   face_landmarks = face_landmarks_list[0] # assume first face found
@@ -216,16 +219,18 @@ def compute_features(frame_number,frame,lip_features):
       }
   })
   end_time = time.time()
-  print("\tcompute_features {}: {}".format(frame_number,(end_time-start_time)))
+  _logger.debug("\n\t...features size:{}\n\t...Elapsed:{}".format(len(lip_features),(end_time-start_time)))
 
 # extract_lips
 def extract_features(ifn,ofn,write_output_movie=False):
-  print("Processing:",ifn)
+  global lip_features
+  lip_features.clear()
+  _logger.debug("Input File: {}".format(ifn))
   # ofn = ifn+"-output.avi" # It only works with AVI
   
   input_movie = cv2.VideoCapture(ifn)
   if not input_movie.isOpened(): 
-      print("could not open :",ifn)
+      _logger.debug("could not open :",ifn)
 
   length = int(input_movie.get(cv2.CAP_PROP_FRAME_COUNT))
   frame_width  = int(input_movie.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -233,11 +238,11 @@ def extract_features(ifn,ofn,write_output_movie=False):
   fps    = input_movie.get(cv2.CAP_PROP_FPS)
   codec = int(input_movie.get(cv2.CAP_PROP_FOURCC))
 
-  print(input_movie)
-  print("CODEC:",codec)
-  print("FPS:",fps)
-  print("Dimension:",frame_width,frame_height)
-  print("Length:",length)
+  _logger.debug(input_movie)
+  _logger.debug("CODEC: {}".format(codec))
+  _logger.debug("FPS: {}".format(fps))
+  _logger.debug("Dimension: {}x{}".format(frame_width,frame_height))
+  _logger.debug("Length: {}".format(length))
   
   step_marker = int(length / 10)
 
@@ -246,14 +251,15 @@ def extract_features(ifn,ofn,write_output_movie=False):
 
   if write_output_movie:
     output_movie = cv2.VideoWriter(ofn, fourcc, fps, (frame_width, frame_height))
-    print("Output:",output_movie)
+    _logger.debug("Output:",output_movie)
   # output_movie.release()
 
   # Initialize variables
   # face_locations = []
   frame_number = 0
 
-  lip_features = []
+  
+  # lip_features = []
   frame = None
   observe_frame = 100
   total_time = 0
@@ -265,7 +271,7 @@ def extract_features(ifn,ofn,write_output_movie=False):
     
     ret, frame = input_movie.read() # Grab a single frame of video
     # end_time = time.time()
-    # print("\tLoad frame {}: {}".format(frame_number,(end_time - start_time)))
+    # _logger.debug("\tLoad frame {}: {}".format(frame_number,(end_time - start_time)))
 
     # Quit when the input video file ends
     if not ret:
@@ -277,9 +283,14 @@ def extract_features(ifn,ofn,write_output_movie=False):
     # Find all the faces and face encodings in the current frame of video
     # face_locations = face_recognition.face_locations(rgb_frame, model="cnn")
 
-    p = Process(target=compute_features, args=(frame_number,frame,lip_features,))
+    # TODO ..  make it multithread :(
+    """
+    p = Process(target=compute_features, args=(frame_number,frame,))
     processes.append(p)
     p.start()
+    """
+    compute_features(frame_number,frame)
+
 
 
     
@@ -293,7 +304,7 @@ def extract_features(ifn,ofn,write_output_movie=False):
 
 #     mouthImage,lip_landmarks = getMouthImage(rgb_frame)
 #     score = getTeethScore(mouthImage,lip_landmarks)
-# #     print('LAB {}\nLUV {}'.format(score[3],score[4]))
+# #     _logger.debug('LAB {}\nLUV {}'.format(score[3],score[4]))
     
 #     markedMouthImage = score[0]
 #     lab_c = score[3]
@@ -316,10 +327,10 @@ def extract_features(ifn,ofn,write_output_movie=False):
 
 
     # Write the resulting image to the output video file
-  #     print("Writing frame {} / {}".format(frame_number, length))
-    print("#",end='')
+  #     _logger.debug("Writing frame {} / {}".format(frame_number, length))
+    # print("#",end='')
     if frame_number % step_marker == 0:
-      print(" %d/%d"%(frame_number,length))
+      _logger.debug(" %d/%d"%(frame_number,length))
 
     if write_output_movie:   
     #     i/len(some_list)*100," percent complete         \r",      
@@ -340,7 +351,7 @@ def extract_features(ifn,ofn,write_output_movie=False):
   for p in processes:
     p.join()
 
-  print("Elapse Time: {}".format(end_time - start_time))
+  _logger.debug("Elapse Time: {}".format(end_time - start_time))
 
   if write_output_movie:   
     output_movie.release()
@@ -349,8 +360,9 @@ def extract_features(ifn,ofn,write_output_movie=False):
   import json as j
   # outputFilename = ifn+".json"
   # with open(outputFilename,"w") as f:
+  _logger.debug("Saving JSON")
   with open(ofn,"w") as f:
-    j.dump(lip_features,f)
+    j.dump(lip_features,f, indent=4)
   
   # return outputFilename
   
@@ -378,7 +390,7 @@ def vid2vec(v):
       basename = os.path.basename(v)
       sep = os.path.sep
       ofn = "{}{}{}.json".format(current_dir,sep,basename)
-      print("\tOutput to "+ofn)
+      _logger.debug("\tOutput to "+ofn)
       extract_features(v,ofn)
 
       return ofn
@@ -450,9 +462,9 @@ def main(args):
   args = parse_args(args)
   setup_logging(args.loglevel)
   _logger.debug("Starting crazy calculations...")
-  # print("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
+  # _logger.debug("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
   ret = vid2vec(args.v)
-  print("RET {}".format(ret))
+  _logger.debug("RET {}".format(ret))
   _logger.info("Script ends here")
 
 

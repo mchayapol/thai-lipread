@@ -1,4 +1,10 @@
-cmake -G "MinGW Makefiles" -S src -B build
+# Thai Lipreading
 
-Then
-make --> mingw32-make
+# Subprojects
+
+## vid2vec
+Video to vector conversion
+
+## vec2viz
+Vector to viseme conversion
+
