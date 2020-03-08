@@ -204,7 +204,7 @@ def compute_features(frame_number,frame):
   face_landmarks_list = face_recognition.face_landmarks(frame)
   face_landmarks = face_landmarks_list[0] # assume first face found
   mouthImage,lip_landmarks = getMouthImage(frame,face_landmarks=face_landmarks)
-  score = getTeethScore(mouthImage,lip_landmarks)
+  score = getTeethScore(mouthImage,lip_landmarks) # TODO this is not done!?
   # markedMouthImage = score[0]
   lab_c = score[3]
   luv_c = score[4]

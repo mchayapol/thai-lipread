@@ -18,4 +18,5 @@ python setup.py develop
 http://scikit-learn.sourceforge.net/stable/modules/hmm.html
 
 # Sample test calls
+python setup.py develop
 vid2vec "D:\GoogleDrive-SCITECH\Research\lip-read\datasets\clips\v1.mp4"
