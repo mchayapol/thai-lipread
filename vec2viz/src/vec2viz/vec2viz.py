@@ -31,12 +31,13 @@ def vec2viz(vector_file,shake_threshold=10):
     data.sort(key=lambda x : x["frame_id"])
     
     # Method 1: failed
-    datas = method1.stabilize(data)
-    draw.plot(datas)
+    # datas = method1.stabilize(data)
+    # draw.plot(datas,frame_id=30)
 
     
     # Method 2: 
     datas = method2.stabilize(data)
+    # draw.plot(datas,frame_id=199)
 
 
     # for f in datac:
