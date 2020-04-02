@@ -3,26 +3,26 @@ import cv2
 import logging
 _logger = logging.getLogger(__name__)
 
-def plot(data, frame_id=0,show_index=False,angle=0):
+# Global params
+# TODO make this configurable
+margin = 100
+radius = 2
+thickness = 2
+color0 = (0,0,0)
+color1 = (0, 255, 0)
+color2 = (0, 0, 255)  # BGR
+background_color = 200
+scale = 1.0
 
-    margin = 100
-    radius = 2
-    thickness = 2
-    color0 = (0,0,0)
-    color1 = (0, 255, 0)
-    color2 = (0, 0, 255)  # BGR
-    background_color = 200
-    scale = 1.0
+font = cv2.FONT_HERSHEY_SIMPLEX 
+org = (50, 50) 
+fontScale = 0.5
 
-    font = cv2.FONT_HERSHEY_SIMPLEX 
-    org = (50, 50) 
-    fontScale = 0.5
-
-    _logger.debug("data.size: {}".format(len(data)))
-    frame = data[frame_id]
-
+def plotf(frame,show_index=False,angle=0):
+    """
+    Plot a frame 
+    """
     # Fixing random state for reproducibility
-
     _logger.debug('\nframe\n=====\n {}'.format(frame))
     top_lip = np.asarray(frame['top_lip'])
     _logger.debug('\ntop_lip\n=======\n'.format(top_lip))
@@ -86,8 +86,18 @@ def plot(data, frame_id=0,show_index=False,angle=0):
         center = (w/2, h/2)
         M = cv2.getRotationMatrix2D(center, angle, scale)
         print(M)
-        img = cv2.warpAffine(img, M, (w, h))        
+        img = cv2.warpAffine(img, M, (w, h),borderMode=cv2.BORDER_REPLICATE)
     # img = cv2.circle(img, (400,800), 20, (0, 0, 0), 5)
-    cv2.imshow("Frame {}".format(frame_id), img)
-    cv2.waitKey(0)
+    return img
+
+def plot(data, frame_id=0,show_index=False,angle=0,show=True):
+    _logger.debug("data.size: {}".format(len(data)))
+    frame = data[frame_id]
+    img = plotf(frame,show_index,angle)
+
+    if show:
+        cv2.imshow("Frame {}".format(frame_id), img)
+        cv2.waitKey(0)
+
+    return img
     

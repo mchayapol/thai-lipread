@@ -41,6 +41,9 @@ def fix_slope(data):
         (x1, y1) = pB0
         dy, dx = (y1-y0), (x1-x0)
         slope = dy/dx
+        # rotate points with slope
+
+        # capture the max slope frame just to plot.
         if max_slope < slope:
             max_slope = slope
             max_slope_frame = f['frame_id']
@@ -58,4 +61,5 @@ def fix_slope(data):
     # TODO rotate the cordinates in list
 
     draw.plot(datas, frame_id=max_slope_frame)
-    return datas
+    return datas # This is still the same as original data
+

@@ -6,7 +6,7 @@ Convert vector to viseme
 import argparse
 import sys
 import logging
-from .util import method1, method2, draw
+from .util import method1, method2, draw, vec2vid
 import cv2
 
 from vec2viz import __version__
@@ -37,6 +37,17 @@ def vec2viz(vector_file,shake_threshold=10):
     
     # Method 2: 
     datas = method2.stabilize(data)
+    # TODO save datas to new json file
+    output_file = vector_file+'.stabilized'
+    output_video = vector_file+'.avi'
+    output_stabilized_video = output_file+'.avi'
+    print("Saving stabilized vector to {}".format(output_file))
+    with open(output_file, 'w') as f:
+      r = json.dump(datas,f,indent=1)
+      # print(datas)
+
+    # vec2vid.createVideo(output_video,data)
+    vec2vid.createVideo(output_stabilized_video,datas)
     # draw.plot(datas,frame_id=199)
 
 
