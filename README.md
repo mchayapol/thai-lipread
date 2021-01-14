@@ -1,4 +1,5 @@
 # Thai Lipreading
+This toolset is built with Python.
 
 # Subprojects
 
