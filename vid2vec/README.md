@@ -1,3 +1,5 @@
+# Vid2Vec
+Extract features from video
 
 conda create -n cv python=3.6
 conda activate cv
@@ -19,4 +21,4 @@ http://scikit-learn.sourceforge.net/stable/modules/hmm.html
 
 # Sample test calls
 python setup.py develop
-vid2vec "D:\GoogleDrive-SCITECH\Research\lip-read\datasets\clips\v1.mp4"
+vid2vec -vv "D:\GoogleDrive-SCITECH\Research\lip-read\datasets\clips\v1.mp4"

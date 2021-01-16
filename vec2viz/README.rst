@@ -2,8 +2,7 @@
 vec2viz
 =======
 
-
-Add a short description here!
+What is this for? I forgot!
 
 
 Description
@@ -20,4 +19,5 @@ information on PyScaffold see https://pyscaffold.org/.
 
 Sample call
 ===========
+python setup.py develop
 vec2viz ..\vid2vec\v1.mp4.json
