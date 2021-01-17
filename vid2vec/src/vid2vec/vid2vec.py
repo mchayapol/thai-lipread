@@ -327,8 +327,8 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
     """
         _logger.debug("compute_features {}/{}".format(frame_number,frame_count))
         (et,face_landmarks_list,markedMouthImage) = compute_features(frame_number, frame)
-        _logger.debug("\n\t...features size: {}/{}\n\t...Elapsed: {}".format(
-            len(lip_features),expected_lip_features_size, et))
+        _logger.debug("\n\tVDO File: {}\n\t...features size: {}/{}\n\t...Elapsed: {}".format(
+            ifn,len(lip_features),expected_lip_features_size, et))
 
 
 #################################
