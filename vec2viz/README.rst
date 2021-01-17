@@ -2,8 +2,8 @@
 vec2viz
 =======
 
-What is this for? I forgot!
-
+Predict viseme from vectors
+WIP
 
 Description
 ===========

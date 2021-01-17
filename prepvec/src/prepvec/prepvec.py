@@ -60,10 +60,56 @@ def prepvec(jsonfile):
   csvfile = jsonfile.replace('.json','.csv')
   # print("Hello "+jsonfile)
 
-  # import pandas as pd
-  # df = pd.read_json (jsonfile)
-  # df.to_csv (jsonfile+".csv", index = None)
-  # return True
+df = raw[["frame#",
+          "49_top_lip_x",
+          "49_top_lip_y",
+          "50_top_lip_x",
+          "50_top_lip_y",
+          "51_top_lip_x",
+          "51_top_lip_y",
+          "52_top_lip_x",
+          "52_top_lip_y",
+          "53_top_lip_x",
+          "53_top_lip_y",
+          "54_top_lip_x",
+          "54_top_lip_y",
+          "55_top_lip_x",
+          "55_top_lip_y",
+          "56_top_lip_x",
+          "56_top_lip_y",
+          "57_top_lip_x",
+          "57_top_lip_y",
+          "58_top_lip_x",
+          "58_top_lip_y",
+          "59_top_lip_x",
+          "59_top_lip_y",
+          "60_top_lip_x",
+          "60_top_lip_y",
+          "61_bottom_lip_x",
+          "61_bottom_lip_y",
+          "62_bottom_lip_x",
+          "62_bottom_lip_y",
+          "63_bottom_lip_x",
+          "63_bottom_lip_y",
+          "64_bottom_lip_x",
+          "64_bottom_lip_y",
+          "65_bottom_lip_x",
+          "65_bottom_lip_y",
+          "66_bottom_lip_x",
+          "66_bottom_lip_y",
+          "67_bottom_lip_x",
+          "67_bottom_lip_y",
+          "68_bottom_lip_x",
+          "68_bottom_lip_y",
+          "69_bottom_lip_x",
+          "69_bottom_lip_y",
+          "70_bottom_lip_x",
+          "70_bottom_lip_y",
+          "71_bottom_lip_x",
+          "71_bottom_lip_y",
+          "72_bottom_lip_x",
+          "72_bottom_lip_y"
+          ]]
   with open(jsonfile) as json_file:
       data = json.load(json_file)
       jsondata_flat = flatten_json(data)
