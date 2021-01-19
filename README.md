@@ -5,13 +5,22 @@ This toolset is built with Python.
 
 ## vid2vec
 - Video to vector conversion
-- Output JSON
+- Output CSV
 
-## prep-vec
-- Generate CSV from JSON 
+## lfa (Lip Features Analysis)
+* Analyse with various methods
+* Output processed CSV (-processed.csv)
+* Output ARFF
 
 ## vec2viz
 - Vector to viseme conversion
+* Call WEKA?
+
+# OBSOLETE tools
+## prep-vec
+- Generate CSV from JSON
+- BUT it only flat the json file with incompatible headers
+
 
 ## Create new project
 Use [pyscaffold](https://pypi.org/project/PyScaffold/)
