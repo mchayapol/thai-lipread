@@ -29,6 +29,7 @@ _logger = logging.getLogger(__name__)
 
 
 lip_features = []
+broken_frame_count = 0
 
 # getMouthImage (from TLR Teeth Appearance Calculation.ipynb)
 
@@ -214,38 +215,42 @@ def flat_dict(fl, frame_number, lab_c, luv_c):
 def compute_features(frame_number, frame):
     global lip_features
     # step_marker = 10
-    start_time = time.time()
-    face_landmarks_list = face_recognition.face_landmarks(frame)
-    face_landmarks = face_landmarks_list[0]  # assume first face found
-    mouthImage, lip_landmarks = getMouthImage(
-        frame, face_landmarks=face_landmarks)
-    score = getTeethScore(mouthImage, lip_landmarks)
-    markedMouthImage = score[0]
-    lab_c = score[3]
-    luv_c = score[4]
+    try:
+        start_time = time.time()
+        face_landmarks_list = face_recognition.face_landmarks(frame)
+        face_landmarks = face_landmarks_list[0]  # assume first face found
+        mouthImage, lip_landmarks = getMouthImage(
+            frame, face_landmarks=face_landmarks)
+        score = getTeethScore(mouthImage, lip_landmarks)
+        markedMouthImage = score[0]
+        lab_c = score[3]
+        luv_c = score[4]
 
-    # print(face_landmarks)
-    fl2 = flat_dict(face_landmarks, frame_number, lab_c, luv_c)
-    # print(fl2)
+        # print(face_landmarks)
+        fl2 = flat_dict(face_landmarks, frame_number, lab_c, luv_c)
+        # print(fl2)
 
-    # lip_features.append({
-    #     "frame_id": frame_number,
-    #     "top_lip": face_landmarks['top_lip'],
-    #     "bottom_lip": face_landmarks['bottom_lip'],
-    #     "teeth_appearance": {
-    #         "LAB": lab_c,
-    #         "LUV": luv_c
-    #     }
-    # })
-    lip_features.append(fl2)
-    # print(lip_features)
+        # lip_features.append({
+        #     "frame_id": frame_number,
+        #     "top_lip": face_landmarks['top_lip'],
+        #     "bottom_lip": face_landmarks['bottom_lip'],
+        #     "teeth_appearance": {
+        #         "LAB": lab_c,
+        #         "LUV": luv_c
+        #     }
+        # })
+        lip_features.append(fl2)
+        # print(lip_features)
 
-    # print("#", end='')
-    # if frame_number % step_marker == 0:
-    #     print(" %d/%d" % (frame_number, length))
+        # print("#", end='')
+        # if frame_number % step_marker == 0:
+        #     print(" %d/%d" % (frame_number, length))
 
-    end_time = time.time()
-    elapsed_time = end_time-start_time
+        end_time = time.time()
+        elapsed_time = end_time-start_time
+    except Exception as e:
+        _logger.error(e)
+        return (0,None,None)
     return (elapsed_time,face_landmarks_list,markedMouthImage)
 
 # extract_lips
@@ -253,6 +258,7 @@ def compute_features(frame_number, frame):
 
 def extract_features(ifn, skip_frames=0, write_output_movie=False):
     global lip_features
+    global broken_frame_count
     lip_features.clear()
     _logger.debug("Input File: {}".format(ifn))
     ofn = ifn.replace(".mp4","")+"-skip-{}-output.avi".format(skip_frames) # It only works with AVI
@@ -327,6 +333,9 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
     """
         _logger.debug("compute_features {}/{}".format(frame_number,frame_count))
         (et,face_landmarks_list,markedMouthImage) = compute_features(frame_number, frame)
+        if face_landmarks_list == None:
+            broken_frame_count += 1
+            continue
         _logger.debug("\n\tVDO File: {}\n\t...features size: {}/{}\n\t...Elapsed: {}".format(
             ifn,len(lip_features),expected_lip_features_size, et))
 
@@ -511,6 +520,7 @@ def setup_logging(loglevel):
 
 
 def main(args):
+    global broken_frame_count
     """Main entry point allowing external calls
 
     Args:
@@ -522,6 +532,7 @@ def main(args):
     # _logger.debug("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
     ret = vid2vec(args.v,args.s)
     _logger.debug("RET {}".format(ret))
+    _logger.debug("Broken Frame Count: {}".format(broken_frame_count))
     _logger.info("Script ends here")
 
 

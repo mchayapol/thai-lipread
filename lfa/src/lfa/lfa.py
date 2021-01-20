@@ -22,6 +22,7 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import arff
 
 from lfa import __version__
 
@@ -256,7 +257,7 @@ def method3(raw):
     return dfa
 
 
-def viz(dfa,raw):
+def viz(dfa, raw):
     # dfa.drop(columns=['sum'])
     # 1. SUM
     a_cols = [col for col in dfa.columns if 'angle' in col]
@@ -294,7 +295,6 @@ def viz(dfa,raw):
     plt.plot(dfa.index, dfa['sum'])
     # fig.show()
 
-
     # 3-- MEAN MIN/MAX SIGNAL
     from scipy.signal import argrelextrema
     # Generate a noisy AR(1) sample
@@ -315,8 +315,8 @@ def viz(dfa,raw):
     plt.scatter(dfa.index, dfa['max'], c='r')
     plt.plot(raw.index, raw['teeth_LAB'], c='y')
     # plt.plot(raw.index, raw['teeth_LUV'], c='g')
-    plt.plot(dfa.index, dfa['sum'])    
-    
+    plt.plot(dfa.index, dfa['sum'])
+
     # fig.show()
 
     # 3-- MEAN MIN/MAX
@@ -382,7 +382,7 @@ def viz_mean_min_max_2(dfa):
     plt.show()
 
 
-def viz_mean_min_max(dfa,raw):
+def viz_mean_min_max(dfa, raw):
     from scipy.signal import argrelextrema
 
     # dfa.drop(columns=['sum'])
@@ -426,6 +426,14 @@ def parse_args(args):
                         help="Method (default 0)", type=int, default=0)
     parser.add_argument(dest="csv_filename",
                         help="Lip-Geometry CSV filename", type=str, metavar="CSV")
+
+    parser.add_argument(
+        "-q",
+        dest="disable_viz",
+        help="Disable visualisation",
+        action="store_const",
+        const=True,
+    )
 
     # Log related arguments
     parser.add_argument(
@@ -472,7 +480,7 @@ def main(args):
     csv_filename = args.csv_filename
     method = args.method
     _logger.info("Analysis Method {}".format(method))
-    
+
     raw_df = pd.read_csv(csv_filename)
     dfa = {
         0: method0,
@@ -482,8 +490,15 @@ def main(args):
     }[args.method](raw_df)
 
     # viz_mean_min_max(dfa,raw_df)
-    viz(dfa,raw_df)
+    if not args.disable_viz:
+        viz(dfa, raw_df)
+        
     dfa.to_csv(csv_filename.replace(".csv", "")+'-m{}.csv'.format(method))
+
+    arff.dump(csv_filename.replace(".csv", "")+'.arff',
+              dfa.values,
+              relation='relation name',
+              names=dfa.columns)
 
     _logger.info("Script ends here")
 
