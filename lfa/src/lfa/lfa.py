@@ -257,7 +257,7 @@ def method3(raw):
     return dfa
 
 
-def viz(dfa, raw):
+def viz(dfa, raw,to_file_only=False):
     # dfa.drop(columns=['sum'])
     # 1. SUM
     a_cols = [col for col in dfa.columns if 'angle' in col]
@@ -328,7 +328,10 @@ def viz(dfa, raw):
     plt.scatter(dfa.index, dfa['max'], c='g')
     plt.plot(raw.index, raw['teeth_LUV'], c='g')
     plt.plot(dfa.index, dfa['sum'])
-    plt.show()
+    if to_file_only:
+        plt.savefig(csv_filename.replace('.csv','')+'.png')
+    else:
+        plt.show()
 
 
 def viz_sum(dfa):
@@ -435,6 +438,15 @@ def parse_args(args):
         const=True,
     )
 
+    parser.add_argument(
+        "-s",
+        dest="save_fig",
+        help="Save visualisation figure",
+        action="store_const",
+        const=True,
+    )
+
+
     # Log related arguments
     parser.add_argument(
         "-v",
@@ -463,7 +475,11 @@ def setup_logging(loglevel):
     """
     logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
     logging.basicConfig(
-        level=loglevel, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
+        filename='lfa.log',
+        filemode='a',
+        level=loglevel, 
+        # stream=sys.stdout, 
+        format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
     )
 
 
@@ -492,10 +508,12 @@ def main(args):
     # viz_mean_min_max(dfa,raw_df)
     if not args.disable_viz:
         viz(dfa, raw_df)
-        
-    dfa.to_csv(csv_filename.replace(".csv", "")+'-m{}.csv'.format(method))
+    elif args.save_fig:
+        viz(dfa, raw_df, True)
 
-    arff.dump(csv_filename.replace(".csv", "")+'.arff',
+    dfa.to_csv(csv_filename.replace(".csv", "")+f'-m{method}.lfa.csv')
+
+    arff.dump(csv_filename.replace(".csv", "")+f'-m{method}.arff',
               dfa.values,
               relation='relation name',
               names=dfa.columns)
