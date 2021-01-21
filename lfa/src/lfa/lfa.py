@@ -258,41 +258,53 @@ def method3(raw):
 
 
 def viz(dfa, raw,to_file_only=False):
-    # dfa.drop(columns=['sum'])
+    text_kwargs = dict(ha='left', va='top', fontsize=10, color='tab:gray')
+    fig, axs = plt.subplots(5, sharex=True, sharey=True, gridspec_kw={'hspace': 0},figsize=(20,10))
+    # fig = plt.figure()
+    fig.suptitle("Viseme {}".format(csv_filename), fontsize=16)
+    fig.text(0.5, 0.04, 'Frame#', ha='center')
+    fig.text(0.04, 0.5, 'Angles (degrees)', va='center', rotation='vertical')
+
     # 1. SUM
     a_cols = [col for col in dfa.columns if 'angle' in col]
     dfa["sum"] = dfa[a_cols].sum(axis=1)
-    # plt.figure(figsize=(20, 10))
-    plt.figure().suptitle("Viseme {}".format(csv_filename), fontsize=16)
-    mng = plt.get_current_fig_manager()
-    # mng.resize(*mng.window.maxsize())
-    # mng.window.showMaximized()
-    mng.window.state('zoomed')
 
-    ax = plt.subplot(321)
-    ax.set_ylabel('Degrees')
-    ax.set_xlabel('Frame#')
-    plt.plot(dfa.index, dfa['sum'])
+    ax = axs[0]
+    # ax = plt.subplot(511)
+    # ax = plt.subplot(511,sharex=True)
+    # ax.set_title('SUM')
+    # ax.text(0, 0, 'SUM', **text_kwargs)
+    fig.text(0.13, 0.85, 'SUM',fontsize=14,color='gray')
+    # ax.text(0, 2, 'SUM',verticalalignment='top')
+    # ax.set_ylabel('Degrees')
+    # ax.set_xlabel('Frame#')
+    ax.plot(dfa.index, dfa['sum'])
     # fig.show()
 
     # 2. ABS SUM
     a_cols = [col for col in dfa.columns if 'angle' in col]
     dfa["sum"] = dfa[a_cols].abs().sum(axis=1)
-    ax = plt.subplot(323)
-    ax.set_ylabel('Degrees')
-    ax.set_xlabel('Frame#')
+    # ax = plt.subplot(512,sharex=True)
+    ax = axs[1]
+    # ax.set_title('ABS SUM')
+    fig.text(0.13, 0.7, 'ABS SUM',fontsize=14,color='gray')
+    # ax.set_ylabel('Degrees')
+    # ax.set_xlabel('Frame#')
 
     # ax.figure(figsize=(20, 10))
-    plt.plot(dfa.index, dfa['sum'])
+    ax.plot(dfa.index, dfa['sum'])
     # fig.show()
 
     # 3. MEAN
     a_cols = [col for col in dfa.columns if 'angle' in col]
     dfa["sum"] = dfa[a_cols].mean(axis=1)
-    ax = plt.subplot(325)
-    ax.set_ylabel('Degrees')
-    ax.set_xlabel('Frame#')
-    plt.plot(dfa.index, dfa['sum'])
+    ax = axs[2]
+    # ax = plt.subplot(513)
+    # ax.set_title('MEAN')
+    fig.text(0.13, 0.55, 'MEAN',fontsize=14,color='gray')
+    # ax.set_ylabel('Degrees')
+    # ax.set_xlabel('Frame#')
+    ax.plot(dfa.index, dfa['sum'])
     # fig.show()
 
     # 3-- MEAN MIN/MAX SIGNAL
@@ -306,108 +318,44 @@ def viz(dfa, raw,to_file_only=False):
         dfa["sum"].values, np.greater_equal, order=n)[0]]
 
     # Plot results
-    ax = plt.subplot(322)
-    ax.set_ylabel('Degrees')
-    ax.set_xlabel('Frame#')
-
-    # plt.figure(figsize=(20, 10))
-    plt.scatter(dfa.index, dfa['min'], c='g')
-    plt.scatter(dfa.index, dfa['max'], c='r')
-    plt.plot(raw.index, raw['teeth_LAB'], c='y')
+    # ax = plt.subplot(514)
+    ax = axs[3]
+    # ax.set_title('SIGNAL teeth LAB')
+    fig.text(0.13, 0.39, 'SIGNAL teeth LAB',fontsize=14,color='gray')
+    # ax.set_ylabel('Degrees')
+    # ax.set_xlabel('Frame#')
+    ax.scatter(dfa.index, dfa['min'], c='g')
+    ax.scatter(dfa.index, dfa['max'], c='r')
+    ax.plot(raw.index, raw['teeth_LAB'], c='y')
     # plt.plot(raw.index, raw['teeth_LUV'], c='g')
-    plt.plot(dfa.index, dfa['sum'])
+    ax.plot(dfa.index, dfa['sum'])
 
     # fig.show()
 
     # 3-- MEAN MIN/MAX
-    ax = plt.subplot(324)
-    ax.set_ylabel('Degrees')
-    ax.set_xlabel('Frame#')
-    # ax.figure(figsize=(20, 10))
-    plt.scatter(dfa.index, dfa['min'], c='r')
-    plt.scatter(dfa.index, dfa['max'], c='g')
-    plt.plot(raw.index, raw['teeth_LUV'], c='g')
-    plt.plot(dfa.index, dfa['sum'])
+    # ax = plt.subplot(515)
+    ax = axs[4]
+    # ax.set_title('SIGNAL teeth LUV')
+    fig.text(0.13, 0.23, 'SIGNAL teeth LUV',fontsize=14,color='gray')
+    # ax.set_ylabel('Degrees')
+    # ax.set_xlabel('Frame#')
+    ax.scatter(dfa.index, dfa['min'], c='r')
+    ax.scatter(dfa.index, dfa['max'], c='g')
+    ax.plot(raw.index, raw['teeth_LUV'], c='g')
+    ax.plot(dfa.index, dfa['sum'])
+
+
     if to_file_only:
-        plt.savefig(csv_filename.replace('.csv','')+'.png')
+        fig_filename = csv_filename.replace('.csv','')+'.png'
+        # fig_filename = csv_filename.replace('.csv','')+'.pdf'   # vectorised figure
+        print(f"Save figure to {fig_filename}")
+        # plt.figure(figsize=(40, 20))        
+        plt.savefig(fig_filename, bbox_inches='tight')
     else:
+        mng = plt.get_current_fig_manager()
+        mng.window.state('zoomed')
         plt.show()
 
-
-def viz_sum(dfa):
-    # dfa.drop(columns=['sum'])
-    a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].sum(axis=1)
-    # dfa["sum"] = dfa.sum(axis=1)
-    #  dfa["sum"].plot()
-
-    plt.figure(figsize=(20, 10))
-    # plt.scatter(dfa.index, dfa['sum'])
-    plt.plot(dfa.index, dfa['sum'])
-    plt.show()
-
-
-def viz_abs_sum(dfa):
-    # dfa.drop(columns=['sum'])
-    a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].abs().sum(axis=1)
-    # dfa["sum"].plot()
-
-    plt.figure(figsize=(20, 10))
-    # plt.scatter(dfa.index, dfa['sum'])
-    plt.plot(dfa.index, dfa['sum'])
-    plt.show()
-    # a_cols
-
-
-def viz_mean(dfa):
-    # dfa.drop(columns=['sum'])
-    a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].mean(axis=1)
-    # dfa["sum"].plot()
-
-    plt.figure(figsize=(20, 10))
-    # plt.scatter(dfa.index, dfa['sum'])
-    plt.plot(dfa.index, dfa['sum'])
-    plt.show()
-
-
-def viz_mean_min_max_2(dfa):
-    # dfa.drop(columns=['sum'])
-    a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].mean(axis=1)
-    plt.figure(figsize=(20, 10))
-    plt.scatter(dfa.index, dfa['min'], c='r')
-    plt.scatter(dfa.index, dfa['max'], c='g')
-    # plt.plot(raw.index, raw['teeth_LAB'], c='y')
-    plt.plot(raw.index, raw['teeth_LUV'], c='g')
-    plt.plot(dfa.index, dfa['sum'])
-    plt.show()
-
-
-def viz_mean_min_max(dfa, raw):
-    from scipy.signal import argrelextrema
-
-    # dfa.drop(columns=['sum'])
-    a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].mean(axis=1)
-
-    # Generate a noisy AR(1) sample
-    n = 10  # number of points to be checked before and after
-    # Find local peaks
-    dfa['min'] = dfa["sum"].iloc[argrelextrema(
-        dfa["sum"].values, np.less_equal, order=n)[0]]
-    dfa['max'] = dfa["sum"].iloc[argrelextrema(
-        dfa["sum"].values, np.greater_equal, order=n)[0]]
-
-    # Plot results
-    plt.figure(figsize=(20, 10))
-    plt.scatter(dfa.index, dfa['min'], c='g')
-    plt.scatter(dfa.index, dfa['max'], c='r')
-    plt.plot(raw.index, raw['teeth_LAB'], c='y')
-    # plt.plot(raw.index, raw['teeth_LUV'], c='g')
-    plt.plot(dfa.index, dfa['sum'])
-    plt.show()
 
 
 def parse_args(args):
