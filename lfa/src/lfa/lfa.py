@@ -120,13 +120,42 @@ def filter_columns(raw):
     return df
 
 
+def calculate_roi_dimension(raw):
+
+    # print(raw.columns)
+    x_names = []
+    y_names = []
+    for c in raw.columns:
+        if "lip" in c and "_x" in c:
+            x_names.append(c)
+        elif "lip" in c and "_y" in c:
+            y_names.append(c)
+    # print(x_names)
+    # print(y_names)
+    dfX = raw[x_names]
+    dfY = raw[y_names]
+
+    raw['x0'] = dfX.min(axis=1)
+    raw['x1'] = dfX.max(axis=1)
+    raw['y0'] = dfY.min(axis=1)
+    raw['y1'] = dfY.max(axis=1)
+    raw['roi_w'] = raw.x1 - raw.x0
+    raw['roi_h'] = raw.y1 - raw.y0
+    raw['roi_a'] = raw.roi_w * raw.roi_h
+    raw['teeth_LAB_ratio'] = raw.teeth_LAB / raw.roi_a
+    raw['teeth_LUV_ratio'] = raw.teeth_LUV / raw.roi_a
+    # print(raw[['roi_w', 'roi_h']])
+    return raw
+
+
 def method0(raw):
     df = filter_columns(raw)
     corner_y = '49_top_lip_y'
     corner_x = '49_top_lip_x'
 
     dfa = pd.DataFrame()
-    # dfa[['frame#', 'teeth_LAB', 'teeth_LUV']] = raw[['frame#', 'teeth_LAB', 'teeth_LUV']]
+    selected_fields = ['frame#', 'x0','x1','y0','y1','roi_w', 'roi_h', 'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio','teeth_LUV_ratio']
+    dfa[selected_fields] = raw[selected_fields]
     for pno in range(49, 60, 1):
         y1 = '{}_top_lip_y'.format(pno+1)
         x1 = '{}_top_lip_x'.format(pno+1)
@@ -160,8 +189,8 @@ Method 1: angles between adjacent points.
 def method1(raw):
     df = filter_columns(raw)
     dfa = pd.DataFrame()
-    # dfa['frame#'] = raw['frame#']
-    dfa[['frame#', 'teeth_LAB', 'teeth_LUV']] = raw[['frame#', 'teeth_LAB', 'teeth_LUV']]
+    selected_fields = ['frame#', 'x0','x1','y0','y1','roi_w', 'roi_h', 'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio','teeth_LUV_ratio']
+    dfa[selected_fields] = raw[selected_fields]
     for pno in range(49, 60, 1):
         y1 = '{}_top_lip_y'.format(pno+1)
         x1 = '{}_top_lip_x'.format(pno+1)
@@ -196,8 +225,8 @@ def method2(raw):
                     ]
 
     dfa = pd.DataFrame()
-    # dfa['frame#'] = raw['frame#']
-    dfa[['frame#', 'teeth_LAB', 'teeth_LUV']] = raw[['frame#', 'teeth_LAB', 'teeth_LUV']]
+    selected_fields = ['frame#', 'x0','x1','y0','y1','roi_w', 'roi_h', 'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio','teeth_LUV_ratio']
+    dfa[selected_fields] = raw[selected_fields]
 
     for p in top_pairs:
         y1 = '{}_top_lip_y'.format(p[1])
@@ -257,9 +286,10 @@ def method3(raw):
     return dfa
 
 
-def viz(dfa, raw,to_file_only=False):
+def viz(dfa, raw, to_file_only=False):
     text_kwargs = dict(ha='left', va='top', fontsize=10, color='tab:gray')
-    fig, axs = plt.subplots(5, sharex=True, sharey=True, gridspec_kw={'hspace': 0},figsize=(20,10))
+    fig, axs = plt.subplots(5, sharex=True, sharey=True, gridspec_kw={
+                            'hspace': 0}, figsize=(20, 10))
     # fig = plt.figure()
     fig.suptitle("Viseme {}".format(csv_filename), fontsize=16)
     fig.text(0.5, 0.04, 'Frame#', ha='center')
@@ -274,11 +304,13 @@ def viz(dfa, raw,to_file_only=False):
     # ax = plt.subplot(511,sharex=True)
     # ax.set_title('SUM')
     # ax.text(0, 0, 'SUM', **text_kwargs)
-    fig.text(0.13, 0.85, 'SUM',fontsize=14,color='gray')
+    fig.text(0.13, 0.85, 'SUM', fontsize=14, color='gray')
     # ax.text(0, 2, 'SUM',verticalalignment='top')
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
-    ax.plot(dfa.index, dfa['sum'])
+    # ax.plot(dfa.index, dfa['sum'])
+    print(dfa.index)
+    ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
     # fig.show()
 
     # 2. ABS SUM
@@ -287,12 +319,12 @@ def viz(dfa, raw,to_file_only=False):
     # ax = plt.subplot(512,sharex=True)
     ax = axs[1]
     # ax.set_title('ABS SUM')
-    fig.text(0.13, 0.7, 'ABS SUM',fontsize=14,color='gray')
+    fig.text(0.13, 0.7, 'ABS SUM', fontsize=14, color='gray')
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
 
     # ax.figure(figsize=(20, 10))
-    ax.plot(dfa.index, dfa['sum'])
+    ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
     # fig.show()
 
     # 3. MEAN
@@ -301,10 +333,10 @@ def viz(dfa, raw,to_file_only=False):
     ax = axs[2]
     # ax = plt.subplot(513)
     # ax.set_title('MEAN')
-    fig.text(0.13, 0.55, 'MEAN',fontsize=14,color='gray')
+    fig.text(0.13, 0.55, 'MEAN', fontsize=14, color='gray')
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
-    ax.plot(dfa.index, dfa['sum'])
+    ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
     # fig.show()
 
     # 3-- MEAN MIN/MAX SIGNAL
@@ -321,14 +353,19 @@ def viz(dfa, raw,to_file_only=False):
     # ax = plt.subplot(514)
     ax = axs[3]
     # ax.set_title('SIGNAL teeth LAB')
-    fig.text(0.13, 0.39, 'SIGNAL teeth LAB',fontsize=14,color='gray')
+    fig.text(0.13, 0.39, 'SIGNAL teeth LAB', fontsize=14, color='gray')
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
-    ax.scatter(dfa.index, dfa['min'], c='g')
-    ax.scatter(dfa.index, dfa['max'], c='r')
-    ax.plot(raw.index, raw['teeth_LAB'], c='y')
-    # plt.plot(raw.index, raw['teeth_LUV'], c='g')
-    ax.plot(dfa.index, dfa['sum'])
+
+    # ax.scatter(dfa.index, dfa['min'], c='g')
+    # ax.scatter(dfa.index, dfa['max'], c='r')
+    ax.scatter(dfa.index, dfa['min'] / dfa['min'].max())
+    ax.scatter(dfa.index, dfa['max'] / dfa['max'].max(), c='r')
+
+    # ax.plot(raw.index, raw['teeth_LAB'], c='y')
+    # ax.ylim((0,1))
+    ax.plot(raw.index, raw['teeth_LAB_ratio'] * 5 , c='y')
+    # ax.plot(dfa.index, dfa['sum'])
 
     # fig.show()
 
@@ -336,26 +373,31 @@ def viz(dfa, raw,to_file_only=False):
     # ax = plt.subplot(515)
     ax = axs[4]
     # ax.set_title('SIGNAL teeth LUV')
-    fig.text(0.13, 0.23, 'SIGNAL teeth LUV',fontsize=14,color='gray')
+    fig.text(0.13, 0.23, 'SIGNAL teeth LUV ', fontsize=14, color='gray')
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
-    ax.scatter(dfa.index, dfa['min'], c='r')
-    ax.scatter(dfa.index, dfa['max'], c='g')
-    ax.plot(raw.index, raw['teeth_LUV'], c='g')
-    ax.plot(dfa.index, dfa['sum'])
+    
+    # ax.scatter(dfa.index, dfa['min'], c='r')
+    # ax.scatter(dfa.index, dfa['max'], c='g')
 
+    ax.scatter(dfa.index, dfa['min'] / dfa['min'].max())
+    ax.scatter(dfa.index, dfa['max'] / dfa['max'].max(), c='g')
+
+    # ax.plot(raw.index, raw['teeth_LUV'], c='g')
+    # ax.ylim((0,1))
+    ax.plot(raw.index, raw['teeth_LUV_ratio'] * 5, c='g')
+    # ax.plot(dfa.index, dfa['sum'])
 
     if to_file_only:
-        fig_filename = csv_filename.replace('.csv','')+'.png'
+        fig_filename = csv_filename.replace('.csv', '')+'.png'
         # fig_filename = csv_filename.replace('.csv','')+'.pdf'   # vectorised figure
         print(f"Save figure to {fig_filename}")
-        # plt.figure(figsize=(40, 20))        
+        # plt.figure(figsize=(40, 20))
         plt.savefig(fig_filename, bbox_inches='tight')
     else:
         mng = plt.get_current_fig_manager()
         mng.window.state('zoomed')
         plt.show()
-
 
 
 def parse_args(args):
@@ -394,7 +436,6 @@ def parse_args(args):
         const=True,
     )
 
-
     # Log related arguments
     parser.add_argument(
         "-v",
@@ -425,8 +466,8 @@ def setup_logging(loglevel):
     logging.basicConfig(
         filename='lfa.log',
         filemode='a',
-        level=loglevel, 
-        # stream=sys.stdout, 
+        level=loglevel,
+        # stream=sys.stdout,
         format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
     )
 
@@ -446,6 +487,8 @@ def main(args):
     _logger.info("Analysis Method {}".format(method))
 
     raw_df = pd.read_csv(csv_filename)
+    raw_df = calculate_roi_dimension(raw_df)
+
     dfa = {
         0: method0,
         1: method1,

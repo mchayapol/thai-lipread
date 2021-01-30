@@ -10,3 +10,11 @@ img {
     width: 200px;
     height: 140px
 }
+
+.consonant {
+    background-color: bisque;
+}
+
+.vowel {
+background-color: rgb(208, 139, 211);
+}
