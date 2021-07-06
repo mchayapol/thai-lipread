@@ -3,6 +3,9 @@
 Research code from
 https://colab.research.google.com/drive/1PJDTfLYwRRzxhgW3yIe_OymnkDKKG5kB
 
+2D use - face_recognition package
+3D use - face_alignment
+
 
 """
 # from multiprocessing import Process
@@ -13,11 +16,14 @@ import os
 import time
 import logging
 
-import face_recognition
+import face_alignment  # for 3D face landmarks
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
 import csv
+from .mlr import Face
+
+import traceback
 
 from vid2vec import __version__
 
@@ -28,8 +34,11 @@ __license__ = "mit"
 _logger = logging.getLogger(__name__)
 
 
+# Global configuration
 lip_features = []
 broken_frame_count = 0
+fa = None
+# mode2d = False
 
 # getMouthImage (from TLR Teeth Appearance Calculation.ipynb)
 
@@ -71,6 +80,26 @@ def getMouthImage(faceImage, face_landmarks=None, margin=0):
 
     return mouthImage, lip_landmarks
 
+
+def getMouthImage_3D(faceImage, face_landmarks, margin=0):
+    minx = miny = float('inf')
+    maxx = maxy = float('-inf')
+
+    # print(f"\t{face_landmarks}")
+    lip_landmarks = face_landmarks[48:69]
+    for x, y, z in lip_landmarks:
+        # print(x,y)
+        minx = int(min(minx, x))
+        miny = int(min(miny, y))
+        maxx = int(max(maxx, x))
+        maxy = int(max(maxy, y))
+
+    # print("------------- ",(minx,miny),(maxx,maxy))
+    # print("------------- ",(miny-margin,maxy+margin),(minx-margin,maxx+margin))
+    mouthImage = faceImage[miny-margin:maxy+margin, minx-margin:maxx+margin]
+
+    return mouthImage, lip_landmarks
+
 # Ray tracing (from TLR Teeth Appearance Calculation.ipynb)
 
 
@@ -79,9 +108,9 @@ def ray_tracing_method(x, y, poly):
     n = len(poly)
     inside = False
 
-    p1x, p1y = poly[0]
+    p1x, p1y, p1z = poly[0]
     for i in range(n+1):
-        p2x, p2y = poly[i % n]
+        p2x, p2y, p1z = poly[i % n]
         if y > min(p1y, p2y):
             if y <= max(p1y, p2y):
                 if x <= max(p1x, p2x):
@@ -93,15 +122,22 @@ def ray_tracing_method(x, y, poly):
 
     return inside
 
-# isin_inner_mouth (from TLR Teeth Appearance Calculation.ipynb)
-
 
 def isin_inner_mouth(lip_boundary, x, y):
+    """
+    isin_inner_mouth (from TLR Teeth Appearance Calculation.ipynb)
+    """
+    bounds = lip_boundary
+    isin = ray_tracing_method(x, y, bounds)
+    return isin
+
+    # face_recognition
     top_lip = lip_boundary['top_lip']
     bottom_lip = lip_boundary['bottom_lip']
     bounds = np.concatenate((top_lip[6:], bottom_lip[6:]), axis=0)
     isin = ray_tracing_method(x, y, bounds)
     return isin
+
 
 # findCavity (from TLR Teeth Appearance Calculation.ipynb)
 
@@ -122,7 +158,61 @@ def cavityArea(top_lip, bottom_lip):
 # getTeethScore (from TLR Teeth Appearance Calculation.ipynb)
 
 
-def getTeethScore(mouthImage, lip_landmarks=None):
+def getTeethScore(mouthImage, lip_landmarks):
+
+    height, width, channels = mouthImage.shape
+
+    area = height * width
+
+    # Operate in BGR (imread loads in BGR)
+    # OR WHAT???
+    # Working with VDO frame
+    # - RGB2Lab gives all WHITE region
+    lab = cv2.cvtColor(mouthImage, cv2.COLOR_RGB2Lab)
+    luv = cv2.cvtColor(mouthImage, cv2.COLOR_RGB2Luv)
+#   lab = cv2.cvtColor(mouthImage, cv2.COLOR_BGR2Lab)
+#   luv = cv2.cvtColor(mouthImage, cv2.COLOR_BGR2Luv)
+
+    lab_ud = lab[:, :, 1].mean() - lab[:, :, 1].std()
+    ta = lab_ud  # From THESIS (LAB, LUV)
+
+    luv_ud = luv[:, :, 1].mean() - luv[:, :, 1].std()
+    tu = luv_ud  # from thesis
+
+    # WHY do we copy?
+    lab2 = np.copy(lab)
+    luv2 = np.copy(luv)
+
+    # Copy for teeth hilight
+    hilightedMouthImage = np.copy(mouthImage)
+
+    # Pixel-wise operation
+    # TODO make it faster?
+    lab_c = luv_c = 0  # Counters
+    for y in range(len(hilightedMouthImage)):
+        row = hilightedMouthImage[y]
+        for x in range(len(row)):
+            inMouth = isin_inner_mouth(lip_landmarks, x, y)
+
+            if inMouth:
+                p = row[x]
+                lab_a = lab2[y, x, 1]
+                luv_a = luv2[y, x, 1]
+                if lab_a <= ta:
+                    p[0] = 255  # L
+                    p[1] = 255  # L
+                    p[2] = 255  # L
+                    lab_c += 1
+                if luv_a <= tu:
+                    p[0] = 255  # L
+                    p[1] = 255  # L
+                    p[2] = 255  # L
+                    luv_c += 1
+
+    return (hilightedMouthImage, lab, luv, lab_c, luv_c)
+
+
+def getTeethScore_3D(mouthImage, lip_landmarks=None):
 
     height, width, channels = mouthImage.shape
 
@@ -157,7 +247,7 @@ def getTeethScore(mouthImage, lip_landmarks=None):
         row = hilightedMouthImage[y]
         for x in range(len(row)):
             inMouth = False
-            if lip_landmarks == None:
+            if lip_landmarks is None:
                 inMouth = isin_mouth(hilightedMouthImage, x, y)
             else:
                 inMouth = isin_inner_mouth(lip_landmarks, x, y)
@@ -181,7 +271,7 @@ def getTeethScore(mouthImage, lip_landmarks=None):
 
 
 # draw_bounary
-def draw_bounary(facial_feature):
+def draw_boundary(facial_feature):
     # _logger.debug(type(face_landmarks[facial_feature]),face_landmarks[facial_feature])
     points = face_landmarks[facial_feature]
 
@@ -194,7 +284,21 @@ def draw_bounary(facial_feature):
 def flat_dict(fl, frame_number, lab_c, luv_c):
     fl2 = {}
     fl2["frame#"] = frame_number
+    point_no = 1
+    for p in fl:
+        keyx = f"{point_no}_x"
+        keyy = f"{point_no}_z"
+        keyz = f"{point_no}_y"
+        fl2[keyx] = p[0]
+        fl2[keyy] = p[1]
+        fl2[keyz] = p[2]
+        point_no += 1
 
+    fl2["teeth_LAB"] = lab_c
+    fl2["teeth_LUV"] = luv_c
+    return fl2
+
+    # OLD CODE for face_recognition
     point_no = 1
     for part_name in fl.keys():  # ex: chin, left_eyebrow, right_eyebrow, nose_bridge, nose_tip, left_eye, right_eye, top_lip, bottom_lip
         # print(part_name)
@@ -213,6 +317,70 @@ def flat_dict(fl, frame_number, lab_c, luv_c):
 
 
 def compute_features(frame_number, frame):
+    global lip_features
+    # from skimage import io
+    # import matplotlib.pyplot as plt
+
+    # step_marker = 10
+    elapsed_time = 0
+    print("compute_features_3D")
+    markedMouthImage = None
+    try:
+        start_time = time.time()
+        print("\tfa.get_landmarks")
+        preds = fa.get_landmarks(frame)
+        face_landmarks = preds[0]
+        f = Face.Face(frame,face_landmarks)
+
+        print("\t#Face Found: ", len(preds))
+        # face_landmarks_list = face_recognition.face_landmarks(frame)
+        # face_landmarks = preds[0]  # assume first face found
+        # face_landmarks = face_landmarks_list
+        # print("face_landmarks.shape", face_landmarks.shape)
+
+        # print("\tgetMouthImage_3D")
+        # mouthImage, lip_landmarks = getMouthImage_3D(frame, face_landmarks)
+        
+        print("\tgetTeethScore_3D")
+        # score = getTeethScore_3D(mouthImage, lip_landmarks)
+        (markedMouthImage, lab, luv, lab_c, luv_c,tr_lab,tr_luv) = f.getTeethScore()
+        print(f"LAB_C {lab_c}\nLUV_C {luv_c}")
+
+        # print("flat_dict")
+        fl2 = flat_dict(face_landmarks, frame_number, lab_c, luv_c)
+
+        # print(face_landmarks)
+        # print(fl2)
+        # lip_features.append({
+        #     "frame_id": frame_number,
+        #     "top_lip": face_landmarks['top_lip'],
+        #     "bottom_lip": face_landmarks['bottom_lip'],
+        #     "teeth_appearance": {
+        #         "LAB": lab_c,
+        #         "LUV": luv_c
+        #     }
+        # })
+        lip_features.append(fl2)
+        # print(lip_features)
+
+        # print("#", end='')
+        # if frame_number % step_marker == 0:
+        #     print(" %d/%d" % (frame_number, length))
+
+        end_time = time.time()
+        elapsed_time = end_time-start_time
+
+    except Exception as e:
+        _logger.error(e)
+        # return (0, None, None)
+        tb = traceback.format_exc()
+        print(tb)
+        exit
+
+    return (elapsed_time, preds, markedMouthImage)
+
+
+def ___compute_features_2D(frame_number, frame):
     global lip_features
     # step_marker = 10
     try:
@@ -250,18 +418,202 @@ def compute_features(frame_number, frame):
         elapsed_time = end_time-start_time
     except Exception as e:
         _logger.error(e)
-        return (0,None,None)
-    return (elapsed_time,face_landmarks_list,markedMouthImage)
+        return (0, None, None)
+    return (elapsed_time, face_landmarks_list, markedMouthImage)
 
 # extract_lips
-
 
 def extract_features(ifn, skip_frames=0, write_output_movie=False):
     global lip_features
     global broken_frame_count
+    global fa
     lip_features.clear()
     _logger.debug("Input File: {}".format(ifn))
-    ofn = ifn.replace(".mp4","")+"-skip-{}-output.avi".format(skip_frames) # It only works with AVI
+    # It only works with AVI
+    ofn = ifn.replace(".mp4", "")+"-skip-{}-output.avi".format(skip_frames)
+
+    input_movie = cv2.VideoCapture(ifn)
+    if not input_movie.isOpened():
+        _logger.debug("could not open :", ifn)
+
+    frame_count = int(input_movie.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_width = int(input_movie.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(input_movie.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = input_movie.get(cv2.CAP_PROP_FPS)
+    codec = int(input_movie.get(cv2.CAP_PROP_FOURCC))
+
+    _logger.debug(input_movie)
+    _logger.debug("CODEC: {}".format(codec))
+    _logger.debug("FPS: {}".format(fps))
+    _logger.debug("Dimension: {}x{}".format(frame_width, frame_height))
+    _logger.debug("Length: {}".format(frame_count))
+    _logger.debug("SKIP: {}".format(skip_frames))
+
+    expected_lip_features_size = int(frame_count / (skip_frames+1))
+    step_marker = int(frame_count / 10)
+
+    fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+
+    if write_output_movie:
+        output_movie = cv2.VideoWriter(
+            ofn, fourcc, fps, (frame_width, frame_height))
+        _logger.debug("OUTPUT MOVIE: {}".format(output_movie))
+    # output_movie.release()
+
+    frame_number = 0
+    frame = None
+    observe_frame = 100
+    total_time = 0
+    # processes = []
+    start_time = time.time()
+
+    # fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._3D, flip_input=False)
+    # fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._3D, flip_input=False,device='cuda')
+    fa = face_alignment.FaceAlignment(
+        face_alignment.LandmarksType._3D, flip_input=False, device='cpu')
+
+    while True:
+
+        frame_number += 1
+        ret, frame = input_movie.read()  # Grab a single frame of video
+
+        # Read frame and throw away, otherwise it won't stop with frameskip condition.
+        if frame_number % (skip_frames + 1) != 0:
+            continue
+
+        # Quit when the input video file ends
+        if not ret:
+            break
+
+        _logger.debug(f"compute_features {frame_number}/{frame_count}")
+
+        # This adds to global var, lip_features
+        (et, face_landmarks_list, markedMouthImage) = compute_features(frame_number, frame)
+
+        if face_landmarks_list is None:
+            broken_frame_count += 1
+            continue
+
+        _logger.debug(
+            f"\n\tVDO File: {ifn}\n\t...features size: {len(lip_features)}/{expected_lip_features_size}\n\t...Elapsed: {et}")
+
+    # Save to CSV
+    output_csv_filename = ifn.replace(".mp4", "").replace(".avi", "") + ".csv"
+    _logger.info(f"Writing to {output_csv_filename}")
+    print(f"Writing to {output_csv_filename}")
+    row_no = 0
+    with open(output_csv_filename, "w", newline='') as f:
+        csv_writer = csv.writer(f)
+        for r in lip_features:
+            if row_no == 0:
+                # Writing headers of CSV file
+                header = r.keys()
+                csv_writer.writerow(header)
+                row_no += 1
+
+            # Writing data of CSV file
+            csv_writer.writerow(r.values())
+            # _logger.debug(r.values())
+    _logger.info(f".... Wrote {row_no} records  Done")
+    
+def __extract_features(ifn, skip_frames=0, write_output_movie=False):
+    global lip_features
+    global broken_frame_count
+    lip_features.clear()
+    _logger.debug("Input File: {}".format(ifn))
+    # It only works with AVI
+    ofn = ifn.replace(".mp4", "")+"-skip-{}-output.avi".format(skip_frames)
+
+    input_movie = cv2.VideoCapture(ifn)
+    if not input_movie.isOpened():
+        _logger.debug("could not open :", ifn)
+
+    frame_count = int(input_movie.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_width = int(input_movie.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(input_movie.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = input_movie.get(cv2.CAP_PROP_FPS)
+    codec = int(input_movie.get(cv2.CAP_PROP_FOURCC))
+
+    _logger.debug(input_movie)
+    _logger.debug("CODEC: {}".format(codec))
+    _logger.debug("FPS: {}".format(fps))
+    _logger.debug("Dimension: {}x{}".format(frame_width, frame_height))
+    _logger.debug("Length: {}".format(frame_count))
+    _logger.debug("SKIP: {}".format(skip_frames))
+
+    expected_lip_features_size = int(frame_count / (skip_frames+1))
+    step_marker = int(frame_count / 10)
+
+    fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+    # output_movie = cv2.VideoWriter(ofn, codec, fps, (frame_width, frame_height))
+
+    if write_output_movie:
+        output_movie = cv2.VideoWriter(
+            ofn, fourcc, fps, (frame_width, frame_height))
+        _logger.debug("OUTPUT MOVIE: {}".format(output_movie))
+    # output_movie.release()
+
+    # Initialize variables
+    # face_locations = []
+    frame_number = 0
+
+    # lip_features = []
+    frame = None
+    observe_frame = 100
+    total_time = 0
+    # processes = []
+    start_time = time.time()
+    while True:
+
+        frame_number += 1
+
+        ret, frame = input_movie.read()  # Grab a single frame of video
+
+        # Read frame and throw away, otherwise it won't stop with frameskip condition.
+        if frame_number % (skip_frames + 1) != 0:
+            continue
+
+        # Quit when the input video file ends
+        if not ret:
+            break
+
+        _logger.debug(f"compute_features {frame_number}/{frame_count}")
+
+        (et, face_landmarks_list, markedMouthImage) = compute_features(frame_number, frame)
+
+        if face_landmarks_list is None:
+            broken_frame_count += 1
+            continue
+
+        _logger.debug(
+            f"\n\tVDO File: {ifn}\n\t...features size: {len(lip_features)}/{expected_lip_features_size}\n\t...Elapsed: {et}")
+
+    # Save to CSV
+    output_csv_filename = ifn.replace(".mp4", "").replace(".avi", "") + ".csv"
+    _logger.info(f"Writing to {output_csv_filename}")
+    row_no = 0
+    with open(output_csv_filename, "w", newline='') as f:
+        csv_writer = csv.writer(f)
+        for r in lip_features:
+            if row_no == 0:
+                # Writing headers of CSV file
+                header = r.keys()
+                csv_writer.writerow(header)
+                row_no += 1
+
+            # Writing data of CSV file
+            csv_writer.writerow(r.values())
+            # _logger.debug(r.values())
+    _logger.info(f".... Wrote {row_no} records  Done")
+
+
+def ____extract_features_2D(ifn, skip_frames=0, write_output_movie=False):
+    global lip_features
+    global broken_frame_count
+    lip_features.clear()
+    _logger.debug("Input File: {}".format(ifn))
+    # It only works with AVI
+    ofn = ifn.replace(".mp4", "")+"-skip-{}-output.avi".format(skip_frames)
 
     input_movie = cv2.VideoCapture(ifn)
     if not input_movie.isOpened():
@@ -331,13 +683,16 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
     processes.append(p)
     p.start()
     """
-        _logger.debug("compute_features {}/{}".format(frame_number,frame_count))
-        (et,face_landmarks_list,markedMouthImage) = compute_features(frame_number, frame)
+        _logger.debug(f"compute_features {frame_number}/{frame_count}")
+        (et, face_landmarks_list, markedMouthImage) = compute_features_2D(
+            frame_number, frame)
+
         if face_landmarks_list == None:
             broken_frame_count += 1
             continue
-        _logger.debug("\n\tVDO File: {}\n\t...features size: {}/{}\n\t...Elapsed: {}".format(
-            ifn,len(lip_features),expected_lip_features_size, et))
+
+        _logger.debug(
+            f"\n\tVDO File: {ifn}\n\t...features size: {len(lip_features)}/{expected_lip_features_size}\n\t...Elapsed: {et}")
 
 
 #################################
@@ -403,20 +758,22 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
 #   plt.imshow(frame[:, :, ::-1])
 
     # Save to CSV
-    output_csv_filename = ifn.replace(".mp4","").replace(".avi","") + ".csv"
-    with open(output_csv_filename,"w",newline='') as f:
-      csv_writer = csv.writer(f)
-      row_no = 0  
-      for r in lip_features: 
-          if row_no == 0:       
-              # Writing headers of CSV file 
-              header = r.keys() 
-              csv_writer.writerow(header) 
-              row_no += 1
-        
-          # Writing data of CSV file 
-          csv_writer.writerow(r.values()) 
-          # _logger.debug(r.values())
+    output_csv_filename = ifn.replace(".mp4", "").replace(".avi", "") + ".csv"
+    _logger.info(f"Writing {row_no} records to {output_csv_filename}")
+    with open(output_csv_filename, "w", newline='') as f:
+        csv_writer = csv.writer(f)
+        row_no = 0
+        for r in lip_features:
+            if row_no == 0:
+                # Writing headers of CSV file
+                header = r.keys()
+                csv_writer.writerow(header)
+                row_no += 1
+
+            # Writing data of CSV file
+            csv_writer.writerow(r.values())
+            # _logger.debug(r.values())
+        _logger.info(f".... Done")
 
     # import json as j
     # # outputFilename = ifn+".json"
@@ -428,12 +785,14 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
     # return outputFilename
 
 
-def vid2vec(video_filename,skip_frames=0):
+# def vid2vec(video_filename, skip_frames=0, mode2d=False):
+def vid2vec(video_filename, skip_frames=0):
     """Main entry for vid2vec function. will generate a JSON file of property vector of the given video
 
     Args:
       video_filename (str): Video filename (mp4, avi)
       skip_frames (int): number of frames to skip
+    #   mode2d (bool): false for 3D (default), otherwise, true for 2D
 
     Returns:
       int: -1 video does not exist
@@ -454,6 +813,10 @@ def vid2vec(video_filename,skip_frames=0):
             # _logger.debug("\tOutput to "+ofn)
             # extract_features(video_filename, skip_frames, false)
 
+            # if mode2d:
+            #     extract_features_2D(video_filename, skip_frames, True)
+            # else:
+            #     extract_features_3D(video_filename, skip_frames, True)
             extract_features(video_filename, skip_frames, True)
 
             return 0
@@ -488,9 +851,16 @@ def parse_args(args):
         help="number of frames to be skipped")
     parser.add_argument(
         dest="v",
+        nargs="+",
         help="video filename",
         type=str,
         metavar="FILENAME")
+    # parser.add_argument(
+    #     "-2d",
+    #     dest="mode2d",
+    #     help="Use 2D face landmarks",
+    #     action="store_const",
+    #     const=True)
     parser.add_argument(
         "-v",
         "--verbose",
@@ -521,6 +891,7 @@ def setup_logging(loglevel):
 
 def main(args):
     global broken_frame_count
+    # global mode2d
     """Main entry point allowing external calls
 
     Args:
@@ -528,9 +899,17 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
-    _logger.debug("Starting crazy calculations...")
+
+    # mode2d = False if args.mode2d is None else True
+    # _logger.debug(f'mode2d {mode2d}')
+
+    video_filename = args.v[0]
+    _logger.debug("INPUT FILENAME: {}".format(video_filename))
+    if not os.path.exists(video_filename):
+        print("File does not exist")
+        return
     # _logger.debug("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
-    ret = vid2vec(args.v,args.s)
+    ret = vid2vec(video_filename, args.s)
     _logger.debug("RET {}".format(ret))
     _logger.debug("Broken Frame Count: {}".format(broken_frame_count))
     _logger.info("Script ends here")

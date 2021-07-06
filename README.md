@@ -1,6 +1,10 @@
 # Thai Lipreading
 This toolset is built with Python.
 
+# Start Development
+* Use `conda`
+* `activate cv`
+
 # Subprojects
 
 ## vid2vec

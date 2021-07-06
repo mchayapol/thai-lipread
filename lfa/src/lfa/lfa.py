@@ -1,18 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This is a skeleton file that can serve as a starting point for a Python
-console script. To run this script uncomment the following lines in the
-[options.entry_points] section in setup.cfg:
-
-    console_scripts =
-         fibonacci = lfa.skeleton:run
-
-Then run `python setup.py install` which will install the command `fibonacci`
-inside your current environment.
-Besides console scripts, the header (i.e. until _logger...) of this file can
-also be used as template for Python modules.
-
-Note: This skeleton file can be safely removed if not needed!
+Chayapol Moemeng
 """
 
 import argparse
@@ -50,6 +38,12 @@ def fib(n):
 
 
 def map_quadrant(d):
+    """
+    Map to the first and forth quadrant only.    
+    ... not sure, let's disable this mapping for now.
+    """
+    return d
+
     if 90 < d <= 180:
         d2 = d - 180
     elif d < -90:
@@ -121,7 +115,6 @@ def filter_columns(raw):
 
 
 def calculate_roi_dimension(raw):
-
     # print(raw.columns)
     x_names = []
     y_names = []
@@ -147,6 +140,21 @@ def calculate_roi_dimension(raw):
     # print(raw[['roi_w', 'roi_h']])
     return raw
 
+def angle(row):
+  print("angle\n-----------\n",row)
+  """
+  return degree [0,360]
+  """
+
+  vector_1 = [row.x0,row.y0]
+  vector_2 = [row.x1,row.y1]
+  unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+  unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+  dot_product = np.dot(unit_vector_1, unit_vector_2)
+  radian = np.arccos(dot_product)
+  angle = np.around(np.degrees(radian),0)
+#   print("Radian {}\nDegree {}".format(radian,angle))    
+  return angle
 
 def method0(raw):
     df = filter_columns(raw)
@@ -157,15 +165,18 @@ def method0(raw):
     selected_fields = ['frame#', 'x0','x1','y0','y1','roi_w', 'roi_h', 'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio','teeth_LUV_ratio']
     dfa[selected_fields] = raw[selected_fields]
     for pno in range(49, 60, 1):
+        # Define column names
         y1 = '{}_top_lip_y'.format(pno+1)
         x1 = '{}_top_lip_x'.format(pno+1)
         y0 = corner_y
         x0 = corner_x
         a_label = '{}_angle'.format(pno)
         # print('{} = {}-{} / {}-{}'.format(a_label,y1,y0,x1,x0))
-        series = np.degrees(np.arctan2(
-            df[y1] - df[y0], df[x1] - df[x0])).apply(map_quadrant)
-        dfa[a_label] = series
+        dfb = df[[x0,y0,x1,y1]].rename(columns={x0: "x0", y0 :"y0", x1:"x1", y1:"y1"})
+        dfa[a_label] = dfb.apply(angle,axis=1)
+        # series = np.degrees(np.arctan2(
+        #     df[y1] - df[y0], df[x1] - df[x0])).apply(map_quadrant)
+        # dfa[a_label] = series
 
     for pno in range(61, 72, 1):
         y1 = '{}_bottom_lip_y'.format(pno+1)
@@ -174,9 +185,11 @@ def method0(raw):
         x0 = corner_x
         a_label = '{}_angle'.format(pno)
         # print('{} = {}-{} / {}-{}'.format(a_label,y1,y0,x1,x0))
-        series = np.degrees(np.arctan2(
-            df[y1] - df[y0], df[x1] - df[x0])).apply(map_quadrant)
-        dfa[a_label] = series
+        # series = np.degrees(np.arctan2(
+        #     df[y1] - df[y0], df[x1] - df[x0])).apply(map_quadrant)
+        # dfa[a_label] = series
+        dfb = df[[x0,y0,x1,y1]].rename(columns={x0: "x0", y0 :"y0", x1:"x1", y1:"y1"})
+        dfa[a_label] = dfb.apply(angle,axis=1)
 
     return dfa
 
