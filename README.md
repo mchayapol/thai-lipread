@@ -14,7 +14,7 @@ This toolset is built with Python.
 ## lfa (Lip Features Analysis)
 * Analyse with various methods
 * Output processed CSV (-processed.csv)
-* Specify method (1,2,3)
+* Specify method (1,2,3,4)
 
 
 ## lfa2arff

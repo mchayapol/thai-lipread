@@ -298,6 +298,18 @@ def method3(raw):
         dfa[a_label] = series
     return dfa
 
+def method4(raw):
+    from util import profile_box
+    # Fix head pose
+    df = profile_box(raw)
+    # df = filter_columns_3D(raw)
+    
+def profile_box(raw):
+    """
+        Returns corrected head-pose
+    """
+
+    pass
 
 def viz(dfa, raw, to_file_only=False):
     text_kwargs = dict(ha='left', va='top', fontsize=10, color='tab:gray')
@@ -429,7 +441,7 @@ def parse_args(args):
         version="lfa {ver}".format(ver=__version__),
     )
     parser.add_argument("-m", dest="method",
-                        help="Method (default 0)", type=int, default=0)
+                        help="Method (default 4)", type=int, default=0)
     parser.add_argument(dest="csv_filename",
                         help="Lip-Geometry CSV filename", type=str, metavar="CSV")
 
@@ -503,10 +515,11 @@ def main(args):
     raw_df = calculate_roi_dimension(raw_df)
 
     dfa = {
-        0: method0,
+        0: method0, # kinda work
         1: method1,
         2: method2,
-        3: method3
+        3: method3,
+        4: method4 # profile box
     }[args.method](raw_df)
 
     # viz_mean_min_max(dfa,raw_df)

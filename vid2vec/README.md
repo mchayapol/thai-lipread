@@ -1,3 +1,4 @@
+# MLR Lib
 # Vid2Vec
 Extract features from video
 
@@ -30,13 +31,7 @@ python setup.py develop
 ```
 vid2vec -vv "D:\GoogleDrive-VMS\Research\lip-reading\datasets\chayapol\v1.mp4"
 ```
-## for 2D (use face_detection)
+## Visualise
 ```
-vid2vec -vv -2d "D:\GoogleDrive-VMS\Research\lip-reading\datasets\chayapol\v1.mp4"
-```
-
-# TODO
-1. Unable to use CUDA due to this error
-```
-RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
+visualise "D:\GoogleDrive-VMS\Research\lip-reading\datasets\chayapol\v1.csv"
 ```

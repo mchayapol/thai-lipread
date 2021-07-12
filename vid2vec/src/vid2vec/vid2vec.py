@@ -21,7 +21,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cv2
 import csv
-from .mlr import Face
+from mlr import Face
 
 import traceback
 
@@ -287,8 +287,9 @@ def flat_dict(fl, frame_number, lab_c, luv_c):
     point_no = 1
     for p in fl:
         keyx = f"{point_no}_x"
-        keyy = f"{point_no}_z"
-        keyz = f"{point_no}_y"
+        keyy = f"{point_no}_y"
+        keyz = f"{point_no}_z"
+
         fl2[keyx] = p[0]
         fl2[keyy] = p[1]
         fl2[keyz] = p[2]
@@ -323,7 +324,7 @@ def compute_features(frame_number, frame):
 
     # step_marker = 10
     elapsed_time = 0
-    print("compute_features_3D")
+    print(f"compute_features_3D: {frame_number}")
     markedMouthImage = None
     try:
         start_time = time.time()
@@ -468,9 +469,8 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
     start_time = time.time()
 
     # fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._3D, flip_input=False)
-    # fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._3D, flip_input=False,device='cuda')
-    fa = face_alignment.FaceAlignment(
-        face_alignment.LandmarksType._3D, flip_input=False, device='cpu')
+    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._3D, flip_input=False,device='cuda')
+    # fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._3D, flip_input=False, device='cpu')
 
     while True:
 
