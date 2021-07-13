@@ -124,9 +124,9 @@ class Face:
 
         tr_lab = lab_c/pgon.area
         tr_luv = luv_c/pgon.area
-        print(lab_c, luv_c, area_mouth, pgon.area)
-        print(f"Ratio 1:\n\tLAB_C {lab_c/area_mouth}\n\tLUV_C {luv_c/area_mouth}")
-        print(f"Ratio 2:\n\tLAB_C {tr_lab}\n\tLUV_C {tr_luv}")
+        # print(lab_c, luv_c, area_mouth, pgon.area)
+        # print(f"Ratio 1:\n\tLAB_C {lab_c/area_mouth}\n\tLUV_C {luv_c/area_mouth}")
+        # print(f"Ratio 2:\n\tLAB_C {tr_lab}\n\tLUV_C {tr_luv}")
         # Teeth Ratio
         return (hilightedMouthImage, lab, luv, lab_c, luv_c, tr_lab, tr_luv)
 

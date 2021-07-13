@@ -140,21 +140,40 @@ def calculate_roi_dimension(raw):
     # print(raw[['roi_w', 'roi_h']])
     return raw
 
-def angle(row):
-  print("angle\n-----------\n",row)
-  """
-  return degree [0,360]
-  """
 
-  vector_1 = [row.x0,row.y0]
-  vector_2 = [row.x1,row.y1]
-  unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
-  unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
-  dot_product = np.dot(unit_vector_1, unit_vector_2)
-  radian = np.arccos(dot_product)
-  angle = np.around(np.degrees(radian),0)
-#   print("Radian {}\nDegree {}".format(radian,angle))    
-  return angle
+def angle_of_2_vectors(row):
+    """
+    use 2 vectors
+    return degree [0,360]
+    """
+
+    vector_1 = [row.x0, row.y0]
+    vector_2 = [row.x1, row.y1]
+    unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+    unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+    dot_product = np.dot(unit_vector_1, unit_vector_2)
+    radian = np.arccos(dot_product)
+    angle = np.around(np.degrees(radian), 0)
+#   print("Radian {}\nDegree {}".format(radian,angle))
+    # print(f"angle: ({row.x0},{row.y0}) / ({row.x1},{row.y1}) = {angle}")
+    print(
+        f"angle: p0:({row.x0},{row.y0}) p1:({row.x1},{row.y1}) = {angle} (r={radian}), ", end="")
+    print(f"dy({row.y1-row.y0})/dx({row.x1-row.x0})")
+    return angle
+
+
+def angle(row):
+    """
+    use x0,y0 as origin and find a single vector
+    return degree [0,360]
+    """
+    x0, y0, x1, y1 = row.x0, row.y0, row.x1, row.y1
+    dp = (x1-x0, y1-y0)
+    v = [dp]
+    v = np.array(v)
+    inv = np.degrees(np.arctan2(*v.T[::-1])) % 360.0
+    return inv[0]
+
 
 def method0(raw):
     df = filter_columns(raw)
@@ -162,7 +181,8 @@ def method0(raw):
     corner_x = '49_top_lip_x'
 
     dfa = pd.DataFrame()
-    selected_fields = ['frame#', 'x0','x1','y0','y1','roi_w', 'roi_h', 'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio','teeth_LUV_ratio']
+    selected_fields = ['frame#', 'x0', 'x1', 'y0', 'y1', 'roi_w', 'roi_h',
+                       'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio', 'teeth_LUV_ratio']
     dfa[selected_fields] = raw[selected_fields]
     for pno in range(49, 60, 1):
         # Define column names
@@ -172,8 +192,9 @@ def method0(raw):
         x0 = corner_x
         a_label = '{}_angle'.format(pno)
         # print('{} = {}-{} / {}-{}'.format(a_label,y1,y0,x1,x0))
-        dfb = df[[x0,y0,x1,y1]].rename(columns={x0: "x0", y0 :"y0", x1:"x1", y1:"y1"})
-        dfa[a_label] = dfb.apply(angle,axis=1)
+        dfb = df[[x0, y0, x1, y1]].rename(
+            columns={x0: "x0", y0: "y0", x1: "x1", y1: "y1"})
+        dfa[a_label] = dfb.apply(angle, axis=1)
         # series = np.degrees(np.arctan2(
         #     df[y1] - df[y0], df[x1] - df[x0])).apply(map_quadrant)
         # dfa[a_label] = series
@@ -188,8 +209,9 @@ def method0(raw):
         # series = np.degrees(np.arctan2(
         #     df[y1] - df[y0], df[x1] - df[x0])).apply(map_quadrant)
         # dfa[a_label] = series
-        dfb = df[[x0,y0,x1,y1]].rename(columns={x0: "x0", y0 :"y0", x1:"x1", y1:"y1"})
-        dfa[a_label] = dfb.apply(angle,axis=1)
+        dfb = df[[x0, y0, x1, y1]].rename(
+            columns={x0: "x0", y0: "y0", x1: "x1", y1: "y1"})
+        dfa[a_label] = dfb.apply(angle, axis=1)
 
     return dfa
 
@@ -202,7 +224,8 @@ Method 1: angles between adjacent points.
 def method1(raw):
     df = filter_columns(raw)
     dfa = pd.DataFrame()
-    selected_fields = ['frame#', 'x0','x1','y0','y1','roi_w', 'roi_h', 'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio','teeth_LUV_ratio']
+    selected_fields = ['frame#', 'x0', 'x1', 'y0', 'y1', 'roi_w', 'roi_h',
+                       'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio', 'teeth_LUV_ratio']
     dfa[selected_fields] = raw[selected_fields]
     for pno in range(49, 60, 1):
         y1 = '{}_top_lip_y'.format(pno+1)
@@ -238,7 +261,8 @@ def method2(raw):
                     ]
 
     dfa = pd.DataFrame()
-    selected_fields = ['frame#', 'x0','x1','y0','y1','roi_w', 'roi_h', 'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio','teeth_LUV_ratio']
+    selected_fields = ['frame#', 'x0', 'x1', 'y0', 'y1', 'roi_w', 'roi_h',
+                       'roi_a', 'teeth_LAB', 'teeth_LUV', 'teeth_LAB_ratio', 'teeth_LUV_ratio']
     dfa[selected_fields] = raw[selected_fields]
 
     for p in top_pairs:
@@ -298,18 +322,80 @@ def method3(raw):
         dfa[a_label] = series
     return dfa
 
-def method4(raw):
-    from util import profile_box
-    # Fix head pose
-    df = profile_box(raw)
-    # df = filter_columns_3D(raw)
-    
-def profile_box(raw):
-    """
-        Returns corrected head-pose
-    """
 
-    pass
+def method4(raw):
+    """
+    Same as method0, 
+    but work with CSV in 2021 (no top_lip, buttom_lip) separation
+    TODO angles is too flat
+    """
+    # df = raw[["frame#",
+    #           "label",
+    #           "49_y",
+    #           "49_x",
+    #           "49_y",
+    #           "50_x",
+    #           "50_y",
+    #           "51_x",
+    #           "51_y",
+    #           "52_x",
+    #           "52_y",
+    #           "53_x",
+    #           "53_y",
+    #           "54_x",
+    #           "54_y",
+    #           "55_x",
+    #           "55_y",
+    #           "56_x",
+    #           "56_y",
+    #           "57_x",
+    #           "57_y",
+    #           "58_x",
+    #           "58_y",
+    #           "59_x",
+    #           "59_y",
+    #           "60_x",
+    #           "60_y",
+    #           "61_x",
+    #           "61_y",
+    #           "62_x",
+    #           "62_y",
+    #           "63_x",
+    #           "63_y",
+    #           "64_x",
+    #           "64_y",
+    #           "65_x",
+    #           "65_y",
+    #           "66_x",
+    #           "66_y",
+    #           "67_x",
+    #           "67_y",
+    #           "68_x",
+    #           "68_y"
+    #           ]]
+
+    corner_x = '49_x'
+    corner_y = '49_y'
+
+    # dfa = pd.DataFrame()
+    # dfa = raw[['frame#', 'x0', 'x1', 'y0', 'y1', 'teeth_LAB', 'teeth_LUV']]
+    dfa = raw[['frame#', 'label','teeth_LAB', 'teeth_LUV']]
+    # print("dfa",dfa)
+
+    for pno in range(50, 68):
+        x0 = corner_x
+        y0 = corner_y
+        x1 = f'{pno}_x'
+        y1 = f'{pno}_y'
+
+        df_for_angle_calc = raw[[x0, y0, x1, y1]].rename(
+            columns={x0: "x0", y0: "y0", x1: "x1", y1: "y1"})
+        # print("dfb",dfb)
+        dfa[f'{pno}_angle'] = df_for_angle_calc.apply(angle, axis=1)
+
+    return dfa
+
+
 
 def viz(dfa, raw, to_file_only=False):
     text_kwargs = dict(ha='left', va='top', fontsize=10, color='tab:gray')
@@ -389,7 +475,7 @@ def viz(dfa, raw, to_file_only=False):
 
     # ax.plot(raw.index, raw['teeth_LAB'], c='y')
     # ax.ylim((0,1))
-    ax.plot(raw.index, raw['teeth_LAB_ratio'] * 5 , c='y')
+    ax.plot(raw.index, raw['teeth_LAB_ratio'] * 5, c='y')
     # ax.plot(dfa.index, dfa['sum'])
 
     # fig.show()
@@ -401,7 +487,7 @@ def viz(dfa, raw, to_file_only=False):
     fig.text(0.13, 0.23, 'SIGNAL teeth LUV ', fontsize=14, color='gray')
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
-    
+
     # ax.scatter(dfa.index, dfa['min'], c='r')
     # ax.scatter(dfa.index, dfa['max'], c='g')
 
@@ -442,6 +528,8 @@ def parse_args(args):
     )
     parser.add_argument("-m", dest="method",
                         help="Method (default 4)", type=int, default=0)
+    parser.add_argument("-l", "--label",dest="label",
+                        help="Label", type=str, default="")
     parser.add_argument(dest="csv_filename",
                         help="Lip-Geometry CSV filename", type=str, metavar="CSV")
 
@@ -500,6 +588,7 @@ def setup_logging(loglevel):
 def main(args):
     global csv_filename
     global method
+    global label
     """Main entry point allowing external calls
 
     Args:
@@ -509,17 +598,26 @@ def main(args):
     setup_logging(args.loglevel)
     csv_filename = args.csv_filename
     method = args.method
+    label = args.label
     _logger.info("Analysis Method {}".format(method))
 
+
+
     raw_df = pd.read_csv(csv_filename)
-    raw_df = calculate_roi_dimension(raw_df)
+    raw_df['label'] = label
+    print(raw_df['label'])  
+    # TODO no need already calculated since vid2vec
+    # raw_df = calculate_roi_dimension(raw_df)
+
+    
+
 
     dfa = {
-        0: method0, # kinda work
+        0: method0,  # kinda work
         1: method1,
         2: method2,
         3: method3,
-        4: method4 # profile box
+        4: method4  # new in 2021
     }[args.method](raw_df)
 
     # viz_mean_min_max(dfa,raw_df)
