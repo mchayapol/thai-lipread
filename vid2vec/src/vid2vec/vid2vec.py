@@ -282,7 +282,7 @@ def draw_boundary(facial_feature):
     cv2.polylines(frame, points, True, (255, 255, 255), thickness=4)
 
 
-def flat_dict(fl, frame_number, lab_c, luv_c):
+def flat_dict(fl, frame_number, tr_lab, tr_luv):
     fl2 = {}
     fl2["frame#"] = frame_number
     point_no = 1
@@ -296,8 +296,8 @@ def flat_dict(fl, frame_number, lab_c, luv_c):
         fl2[keyz] = p[2]
         point_no += 1
 
-    fl2["teeth_LAB"] = lab_c
-    fl2["teeth_LUV"] = luv_c
+    fl2["teeth_LAB"] = tr_lab
+    fl2["teeth_LUV"] = tr_luv
     return fl2
 
     # OLD CODE for face_recognition
@@ -347,10 +347,11 @@ def compute_features(frame_number, frame):
         print("\tgetTeethScore_3D")
         # score = getTeethScore_3D(mouthImage, lip_landmarks)
         (markedMouthImage, lab, luv, lab_c, luv_c,tr_lab,tr_luv) = f.getTeethScore()
-        print(f"LAB_C {lab_c}\nLUV_C {luv_c}")
+        print(f"\tLAB_C: {lab_c} pixels ({tr_lab*100}%)\n\tLUV_C {luv_c} pixels ({tr_luv*100}%)")
 
         # print("flat_dict")
-        fl2 = flat_dict(face_landmarks, frame_number, lab_c, luv_c)
+        # fl2 = flat_dict(face_landmarks, frame_number, lab_c, luv_c)
+        fl2 = flat_dict(face_landmarks, frame_number, tr_lab, tr_luv)
         lip_features.append(fl2)
         # print(lip_features)
 

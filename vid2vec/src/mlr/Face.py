@@ -75,7 +75,7 @@ class Face:
         # print(lip_bounds[0])
         # print(lip_bounds[1])
         pgon = Polygon(lip_bounds)
-        print("pgon.area",pgon.area)
+        print(f"\tlips area in pixels: {pgon.area}")
 
 
         # Operate in BGR (imread loads in BGR)
@@ -167,6 +167,6 @@ if __name__ == '__main__':
     # image = f.getMouthImage()
 
     (image, lab, luv, lab_c, luv_c) = f.getTeethScore()
-    print(f"LAB_C {lab_c}\nLUV_C {luv_c}")
+    print(f"\tLAB_C {lab_c}\n\tLUV_C {luv_c}")
     plt.imshow(image)
     plt.show()

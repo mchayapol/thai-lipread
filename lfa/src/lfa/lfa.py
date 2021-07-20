@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Chayapol Moemeng
+
+NEED IMPROVEMENT
+sum,min,max calculation which is necessary for keyframe detection 
+is in viz() which is optional.
+
 """
 
 import argparse
@@ -61,60 +66,105 @@ def filter_columns(raw):
     - Use 55 as corner to [52,53,54,56,57,58,63,64,65,66,67]
     - and finall 49 and 45 for ROI tilt
     """
+    # df = raw[["frame#",
+    #           "49_top_lip_x",
+    #           "49_top_lip_y",
+    #           "50_top_lip_x",
+    #           "50_top_lip_y",
+    #           "51_top_lip_x",
+    #           "51_top_lip_y",
+    #           "52_top_lip_x",
+    #           "52_top_lip_y",
+    #           "53_top_lip_x",
+    #           "53_top_lip_y",
+    #           "54_top_lip_x",
+    #           "54_top_lip_y",
+    #           "55_top_lip_x",
+    #           "55_top_lip_y",
+    #           "56_top_lip_x",
+    #           "56_top_lip_y",
+    #           "57_top_lip_x",
+    #           "57_top_lip_y",
+    #           "58_top_lip_x",
+    #           "58_top_lip_y",
+    #           "59_top_lip_x",
+    #           "59_top_lip_y",
+    #           "60_top_lip_x",
+    #           "60_top_lip_y",
+    #           "61_bottom_lip_x",
+    #           "61_bottom_lip_y",
+    #           "62_bottom_lip_x",
+    #           "62_bottom_lip_y",
+    #           "63_bottom_lip_x",
+    #           "63_bottom_lip_y",
+    #           "64_bottom_lip_x",
+    #           "64_bottom_lip_y",
+    #           "65_bottom_lip_x",
+    #           "65_bottom_lip_y",
+    #           "66_bottom_lip_x",
+    #           "66_bottom_lip_y",
+    #           "67_bottom_lip_x",
+    #           "67_bottom_lip_y",
+    #           "68_bottom_lip_x",
+    #           "68_bottom_lip_y",
+    #           "69_bottom_lip_x",
+    #           "69_bottom_lip_y",
+    #           "70_bottom_lip_x",
+    #           "70_bottom_lip_y",
+    #           "71_bottom_lip_x",
+    #           "71_bottom_lip_y",
+    #           "72_bottom_lip_x",
+    #           "72_bottom_lip_y"
+    #           ]]
     df = raw[["frame#",
-              "49_top_lip_x",
-              "49_top_lip_y",
-              "50_top_lip_x",
-              "50_top_lip_y",
-              "51_top_lip_x",
-              "51_top_lip_y",
-              "52_top_lip_x",
-              "52_top_lip_y",
-              "53_top_lip_x",
-              "53_top_lip_y",
-              "54_top_lip_x",
-              "54_top_lip_y",
-              "55_top_lip_x",
-              "55_top_lip_y",
-              "56_top_lip_x",
-              "56_top_lip_y",
-              "57_top_lip_x",
-              "57_top_lip_y",
-              "58_top_lip_x",
-              "58_top_lip_y",
-              "59_top_lip_x",
-              "59_top_lip_y",
-              "60_top_lip_x",
-              "60_top_lip_y",
-              "61_bottom_lip_x",
-              "61_bottom_lip_y",
-              "62_bottom_lip_x",
-              "62_bottom_lip_y",
-              "63_bottom_lip_x",
-              "63_bottom_lip_y",
-              "64_bottom_lip_x",
-              "64_bottom_lip_y",
-              "65_bottom_lip_x",
-              "65_bottom_lip_y",
-              "66_bottom_lip_x",
-              "66_bottom_lip_y",
-              "67_bottom_lip_x",
-              "67_bottom_lip_y",
-              "68_bottom_lip_x",
-              "68_bottom_lip_y",
-              "69_bottom_lip_x",
-              "69_bottom_lip_y",
-              "70_bottom_lip_x",
-              "70_bottom_lip_y",
-              "71_bottom_lip_x",
-              "71_bottom_lip_y",
-              "72_bottom_lip_x",
-              "72_bottom_lip_y"
-              ]]
+              "49_x",
+              "49_y",
+              "50_x",
+              "50_y",
+              "51_x",
+              "51_y",
+              "52_x",
+              "52_y",
+              "53_x",
+              "53_y",
+              "54_x",
+              "54_y",
+              "55_x",
+              "55_y",
+              "56_x",
+              "56_y",
+              "57_x",
+              "57_y",
+              "58_x",
+              "58_y",
+              "59_x",
+              "59_y",
+              "60_x",
+              "60_y",
+              "61_x",
+              "61_y",
+              "62_x",
+              "62_y",
+              "63_x",
+              "63_y",
+              "64_x",
+              "64_y",
+              "65_x",
+              "65_y",
+              "66_x",
+              "66_y",
+              "67_x",
+              "67_y",
+              "68_x",
+              "68_y"
+              ]]              
     return df
 
 
 def calculate_roi_dimension(raw):
+    """
+    Unused in 2021-07 approaches
+    """
     # print(raw.columns)
     x_names = []
     y_names = []
@@ -475,7 +525,8 @@ def viz(dfa, raw, to_file_only=False):
 
     # ax.plot(raw.index, raw['teeth_LAB'], c='y')
     # ax.ylim((0,1))
-    ax.plot(raw.index, raw['teeth_LAB_ratio'] * 5, c='y')
+    # ax.plot(raw.index, raw['teeth_LAB_ratio'] * 5, c='y')
+    ax.plot(raw.index, raw['teeth_LAB'] * 5, c='y')
     # ax.plot(dfa.index, dfa['sum'])
 
     # fig.show()
@@ -496,7 +547,8 @@ def viz(dfa, raw, to_file_only=False):
 
     # ax.plot(raw.index, raw['teeth_LUV'], c='g')
     # ax.ylim((0,1))
-    ax.plot(raw.index, raw['teeth_LUV_ratio'] * 5, c='g')
+    # ax.plot(raw.index, raw['teeth_LUV_ratio'] * 5, c='g')
+    ax.plot(raw.index, raw['teeth_LUV'] * 5, c='g')
     # ax.plot(dfa.index, dfa['sum'])
 
     if to_file_only:
