@@ -69,13 +69,13 @@ class Face:
     def getTeethScore(self):
         mouthImage, lip_bounds,mouth_cavity_bounds = self.getMouthImage()
         height, width, channels = mouthImage.shape
-        print(f"\tMouth Image Shape {width, height}")
+        # print(f"\tMouth Image Shape {width, height}")
         area_mouth = height * width # WRONG this has to be polygon area of the mouth only, not rectangular
         # print(lip_bounds)
         # print(lip_bounds[0])
         # print(lip_bounds[1])
         pgon = Polygon(lip_bounds)
-        print(f"\tlips area in pixels: {pgon.area}")
+        # print(f"\tlips area in pixels: {pgon.area}")
 
 
         # Operate in BGR (imread loads in BGR)

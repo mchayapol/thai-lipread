@@ -39,6 +39,7 @@ lip_features = []
 lip_features_pb = []
 broken_frame_count = 0
 fa = None
+frame_count = 0
 # mode2d = False
 
 # getMouthImage (from TLR Teeth Appearance Calculation.ipynb)
@@ -321,21 +322,22 @@ def flat_dict(fl, frame_number, tr_lab, tr_luv):
 def compute_features(frame_number, frame):
     global lip_features
     global lip_features_pb
+    global frame_count
     # from skimage import io
     # import matplotlib.pyplot as plt
 
     # step_marker = 10
     elapsed_time = 0
-    print(f"compute_features_3D: {frame_number}")
+    print(f"\rcompute_features_3D: {frame_number}/{frame_count} ",end="",flush=True)
     markedMouthImage = None
     try:
         start_time = time.time()
-        print("\tfa.get_landmarks")
+        # print("\tfa.get_landmarks")
         preds = fa.get_landmarks(frame)
         face_landmarks = preds[0]
         f = Face.Face(frame,face_landmarks)
 
-        print("\t#Face Found: ", len(preds))
+        # print("\t#Face Found: ", len(preds))
         # face_landmarks_list = face_recognition.face_landmarks(frame)
         # face_landmarks = preds[0]  # assume first face found
         # face_landmarks = face_landmarks_list
@@ -344,10 +346,10 @@ def compute_features(frame_number, frame):
         # print("\tgetMouthImage_3D")
         # mouthImage, lip_landmarks = getMouthImage_3D(frame, face_landmarks)
         
-        print("\tgetTeethScore_3D")
+        # print("\tgetTeethScore_3D")
         # score = getTeethScore_3D(mouthImage, lip_landmarks)
         (markedMouthImage, lab, luv, lab_c, luv_c,tr_lab,tr_luv) = f.getTeethScore()
-        print(f"\tLAB_C: {lab_c} pixels ({tr_lab*100}%)\n\tLUV_C {luv_c} pixels ({tr_luv*100}%)")
+        # print(f"\tLAB_C: {lab_c} pixels ({tr_lab*100}%)\n\tLUV_C {luv_c} pixels ({tr_luv*100}%)")
 
         # print("flat_dict")
         # fl2 = flat_dict(face_landmarks, frame_number, lab_c, luv_c)
@@ -356,7 +358,8 @@ def compute_features(frame_number, frame):
         # print(lip_features)
 
         face_landmarks_pb = profile_box.fix_profile_box(face_landmarks)
-        fl2_pb = flat_dict(face_landmarks_pb, frame_number, lab_c, luv_c)
+        # fl2_pb = flat_dict(face_landmarks_pb, frame_number, lab_c, luv_c)
+        fl2_pb = flat_dict(face_landmarks_pb, frame_number, tr_lab, tr_luv)
         lip_features_pb.append(fl2_pb)
 
         # print("#", end='')
@@ -372,7 +375,7 @@ def compute_features(frame_number, frame):
         tb = traceback.format_exc()
         print(tb)
         exit
-
+    
     return (elapsed_time, preds, markedMouthImage)
 
 
@@ -383,6 +386,7 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
     global lip_features_pb
     global broken_frame_count
     global fa
+    global frame_count
     lip_features.clear()
     lip_features_pb.clear()
     _logger.debug("Input File: {}".format(ifn))
@@ -445,6 +449,7 @@ def extract_features(ifn, skip_frames=0, write_output_movie=False):
 
         # This adds to global var, lip_features
         (et, face_landmarks_list, markedMouthImage) = compute_features(frame_number, frame)
+        # print(f"Elapsed Timne {et}")
 
         if face_landmarks_list is None:
             broken_frame_count += 1

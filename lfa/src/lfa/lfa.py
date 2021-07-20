@@ -6,6 +6,7 @@ NEED IMPROVEMENT
 sum,min,max calculation which is necessary for keyframe detection 
 is in viz() which is optional.
 
+
 """
 
 import argparse
@@ -25,6 +26,9 @@ __license__ = "mit"
 
 _logger = logging.getLogger(__name__)
 
+# TODO handle SettingWithCopyWarning
+# https://towardsdatascience.com/how-to-suppress-settingwithcopywarning-in-pandas-c0c759bd0f10
+pd.options.mode.chained_assignment = None
 
 def fib(n):
     """Fibonacci example function
@@ -215,15 +219,24 @@ def angle_of_2_vectors(row):
 def angle(row):
     """
     use x0,y0 as origin and find a single vector
-    return degree [0,360]
+    return degree [0,360] or 90?
     """
     x0, y0, x1, y1 = row.x0, row.y0, row.x1, row.y1
     dp = (x1-x0, y1-y0)
     v = [dp]
     v = np.array(v)
     inv = np.degrees(np.arctan2(*v.T[::-1])) % 360.0
-    return inv[0]
+    # return inv[0]
+    degree = inv[0]
+    if 90 < degree <= 180:
+        degree -= 90
+    elif 180 < degree <= 270:
+        degree -= 180
+    elif 270 < degree <= 360:
+        degree -= 360
+    return degree
 
+    # inv = np.degrees(np.arctan2(*v.T[::-1])) % 180
 
 def method0(raw):
     df = filter_columns(raw)
@@ -245,6 +258,8 @@ def method0(raw):
         dfb = df[[x0, y0, x1, y1]].rename(
             columns={x0: "x0", y0: "y0", x1: "x1", y1: "y1"})
         dfa[a_label] = dfb.apply(angle, axis=1)
+        # dfa.loc[a_label] = dfb.apply(angle, axis=1).copy(deep=True)
+
         # series = np.degrees(np.arctan2(
         #     df[y1] - df[y0], df[x1] - df[x0])).apply(map_quadrant)
         # dfa[a_label] = series
@@ -262,6 +277,7 @@ def method0(raw):
         dfb = df[[x0, y0, x1, y1]].rename(
             columns={x0: "x0", y0: "y0", x1: "x1", y1: "y1"})
         dfa[a_label] = dfb.apply(angle, axis=1)
+        # dfa.loc[a_label] = dfb.apply(angle, axis=1).copy(deep=True)
 
     return dfa
 
@@ -376,59 +392,12 @@ def method3(raw):
 def method4(raw):
     """
     Same as method0, 
-    but work with CSV in 2021 (no top_lip, buttom_lip) separation
-    TODO angles is too flat
+    but work with CSV in 2021 (no top_lip and buttom_lip separation)
     """
-    # df = raw[["frame#",
-    #           "label",
-    #           "49_y",
-    #           "49_x",
-    #           "49_y",
-    #           "50_x",
-    #           "50_y",
-    #           "51_x",
-    #           "51_y",
-    #           "52_x",
-    #           "52_y",
-    #           "53_x",
-    #           "53_y",
-    #           "54_x",
-    #           "54_y",
-    #           "55_x",
-    #           "55_y",
-    #           "56_x",
-    #           "56_y",
-    #           "57_x",
-    #           "57_y",
-    #           "58_x",
-    #           "58_y",
-    #           "59_x",
-    #           "59_y",
-    #           "60_x",
-    #           "60_y",
-    #           "61_x",
-    #           "61_y",
-    #           "62_x",
-    #           "62_y",
-    #           "63_x",
-    #           "63_y",
-    #           "64_x",
-    #           "64_y",
-    #           "65_x",
-    #           "65_y",
-    #           "66_x",
-    #           "66_y",
-    #           "67_x",
-    #           "67_y",
-    #           "68_x",
-    #           "68_y"
-    #           ]]
 
     corner_x = '49_x'
     corner_y = '49_y'
 
-    # dfa = pd.DataFrame()
-    # dfa = raw[['frame#', 'x0', 'x1', 'y0', 'y1', 'teeth_LAB', 'teeth_LUV']]
     dfa = raw[['frame#', 'label','teeth_LAB', 'teeth_LUV']]
     # print("dfa",dfa)
 
@@ -441,7 +410,10 @@ def method4(raw):
         df_for_angle_calc = raw[[x0, y0, x1, y1]].rename(
             columns={x0: "x0", y0: "y0", x1: "x1", y1: "y1"})
         # print("dfb",dfb)
-        dfa[f'{pno}_angle'] = df_for_angle_calc.apply(angle, axis=1)
+
+        # dfa[f'{pno}_angle'] = df_for_angle_calc.apply(angle, axis=1)
+        # dfa.loc[:,f'{pno}_angle'] = df_for_angle_calc.apply(angle, axis=1)
+        dfa.loc[:,f'{pno}_angle'] = df_for_angle_calc.apply(angle, axis=1).copy(deep=True)
 
     return dfa
 
@@ -458,7 +430,9 @@ def viz(dfa, raw, to_file_only=False):
 
     # 1. SUM
     a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].sum(axis=1)
+    # print("1.SUM",a_cols)
+    # dfa["sum"] = dfa[a_cols].sum(axis=1)
+    dfa.loc[:,("sum")] = dfa[a_cols].sum(axis=1).copy(deep=True)
 
     ax = axs[0]
     # ax = plt.subplot(511)
@@ -470,13 +444,17 @@ def viz(dfa, raw, to_file_only=False):
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
     # ax.plot(dfa.index, dfa['sum'])
-    print(dfa.index)
+    # print(dfa.index)
+    
     ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
+
     # fig.show()
 
     # 2. ABS SUM
     a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].abs().sum(axis=1)
+    # dfa["sum"] = dfa[a_cols].abs().sum(axis=1)
+    dfa.loc[:,"sum"] = dfa[a_cols].abs().sum(axis=1).copy(deep=True)
+
     # ax = plt.subplot(512,sharex=True)
     ax = axs[1]
     # ax.set_title('ABS SUM')
@@ -486,18 +464,23 @@ def viz(dfa, raw, to_file_only=False):
 
     # ax.figure(figsize=(20, 10))
     ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
+
     # fig.show()
 
     # 3. MEAN
     a_cols = [col for col in dfa.columns if 'angle' in col]
-    dfa["sum"] = dfa[a_cols].mean(axis=1)
+    # dfa["sum"] = dfa[a_cols].mean(axis=1)
+    dfa.loc[:,"mean"] = dfa[a_cols].mean(axis=1).copy(deep=True)
+
     ax = axs[2]
     # ax = plt.subplot(513)
     # ax.set_title('MEAN')
     fig.text(0.13, 0.55, 'MEAN', fontsize=14, color='gray')
     # ax.set_ylabel('Degrees')
     # ax.set_xlabel('Frame#')
+    
     ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
+
     # fig.show()
 
     # 3-- MEAN MIN/MAX SIGNAL
@@ -505,10 +488,11 @@ def viz(dfa, raw, to_file_only=False):
     # Generate a noisy AR(1) sample
     n = 10  # number of points to be checked before and after
     # Find local peaks
-    dfa['min'] = dfa["sum"].iloc[argrelextrema(
-        dfa["sum"].values, np.less_equal, order=n)[0]]
-    dfa['max'] = dfa["sum"].iloc[argrelextrema(
-        dfa["sum"].values, np.greater_equal, order=n)[0]]
+    # dfa['min'] = dfa["sum"].iloc[argrelextrema(dfa["sum"].values, np.less_equal, order=n)[0]]
+    # dfa['max'] = dfa["sum"].iloc[argrelextrema(dfa["sum"].values, np.greater_equal, order=n)[0]]
+    dfa.loc[:,'min'] = dfa["sum"].iloc[argrelextrema(dfa["sum"].values, np.less_equal, order=n)[0]]
+    dfa.loc[:,'max'] = dfa["sum"].iloc[argrelextrema(dfa["sum"].values, np.greater_equal, order=n)[0]]
+
 
     # Plot results
     # ax = plt.subplot(514)
@@ -657,7 +641,7 @@ def main(args):
 
     raw_df = pd.read_csv(csv_filename)
     raw_df['label'] = label
-    print(raw_df['label'])  
+    # print(raw_df['label'])  
     # TODO no need already calculated since vid2vec
     # raw_df = calculate_roi_dimension(raw_df)
 
