@@ -54,6 +54,7 @@ def find_angle(p1, p2):
 
 def fix_profile_box(landmarks):
     """
+    landmarks: numpy array
     Only 2 rotation is enough!
     """
     # print(landmarks)
@@ -66,14 +67,12 @@ def fix_profile_box(landmarks):
     vector_1, vector_2 = landmarks[anchor_points]
     angleX = angleY = angleZ = 0
     corrected_landmarks = landmarks
-    print(f"{vector_1}\n{vector_2}")
 
 
     # y-axis, turn left-right
     p1,p2 = vector_1[[0, 2]],vector_2[[0, 2]] # ORG
     angleY = find_angle(p1, p2)+180
 
-    print(f"Angle Y: {angleY}")
     r = R.from_euler('xyz', (0, angleY, 0), degrees=True)
     corrected_landmarks = r.apply(corrected_landmarks)  # Rotated points
 
@@ -82,7 +81,6 @@ def fix_profile_box(landmarks):
     p1,p2 = vector_1[[1, 2]],vector_2[[1, 2]]
     p1,p2 = vector_1[[2, 1]],vector_2[[2, 1]]
     angleX = find_angle(p1, p2)
-    print(f"Angle X: {angleX}")
     r = R.from_euler('xyz', (angleX, 0, 0), degrees=True)
     # corrected_landmarks = r.apply(corrected_landmarks)  # Rotated points
 
@@ -91,9 +89,13 @@ def fix_profile_box(landmarks):
     p1,p2 = vector_1[[0, 1]],vector_2[[0, 1]] # ORG
     p1,p2 = vector_1[[1, 0]],vector_2[[1, 0]]
     angleZ = find_angle(p1, p2) + 90
-    print(f"Angle Z: {angleZ}")
     r = R.from_euler('xyz', (0, 0, angleZ), degrees=True)
     corrected_landmarks = r.apply(corrected_landmarks)  # Rotated points
+
+    # print(f"{vector_1}\n{vector_2}")
+    # print(f"Angle Y: {angleY}")
+    # print(f"Angle X: {angleX}")
+    # print(f"Angle Z: {angleZ}")
 
     return corrected_landmarks
 

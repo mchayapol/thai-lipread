@@ -17,7 +17,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import arff
-# from mlr import profile_box
 
 from lfa import __version__
 
@@ -30,22 +29,6 @@ _logger = logging.getLogger(__name__)
 # TODO handle SettingWithCopyWarning
 # https://towardsdatascience.com/how-to-suppress-settingwithcopywarning-in-pandas-c0c759bd0f10
 pd.options.mode.chained_assignment = None
-
-def fib(n):
-    """Fibonacci example function
-
-    Args:
-      n (int): integer
-
-    Returns:
-      int: n-th Fibonacci number
-    """
-    assert n > 0
-    a, b = 1, 1
-    for i in range(n - 1):
-        a, b = b, a + b
-    return a
-
 
 def map_quadrant(d):
     """
@@ -652,13 +635,6 @@ def main(args):
     raw_df = pd.read_csv(csv_filename)
     raw_df['label'] = label
 
-    # TODO do the profile_box here instead of vid2vec
-    # pred = df2pred(raw_df)
-    # face_landmarks_pb = fix_profile_box(pred)
-    # fl2_pb = flat_dict(face_landmarks_pb, frame_number, tr_lab, tr_luv)
-    
-
-
     dfa = {
         0: method0,  # kinda work
         1: method1,
@@ -666,6 +642,7 @@ def main(args):
         3: method3,
         4: method4  # new in 2021
     }[args.method](raw_df)
+
 
     # viz_mean_min_max(dfa,raw_df)
     if not args.disable_viz:

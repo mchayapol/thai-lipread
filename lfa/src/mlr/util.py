@@ -1,3 +1,6 @@
+import logging
+_logger = logging.getLogger(__name__)
+
 def ray_tracing_method(x, y, poly):
     """
     Ray Tracing method
@@ -76,21 +79,65 @@ def csv2pred(filename):
     # # print(np.array(frames))
     # return np.array(frames)
 
+def export_to_csv(lip_features,output_csv_filename):
+    import csv
+    row_no = 0
+    with open(output_csv_filename, "w", newline='') as f:
+        csv_writer = csv.writer(f)
+        for r in lip_features:
+            if row_no == 0:
+                # Writing headers of CSV file
+                header = r.keys()
+                csv_writer.writerow(header)
+                row_no += 1
+
+            # Writing data of CSV file
+            csv_writer.writerow(r.values())
+            # _logger.debug(r.values())
+    _logger.info(f".... Wrote {row_no} records to {output_csv_filename}")
+    print(f".... Wrote {row_no} records to {output_csv_filename}")
+
+
+def prepare_df_row(landmarks, frame_number, tr_lab, tr_luv):
+    prepared_landmarks = {}
+    prepared_landmarks["frame#"] = frame_number
+    point_no = 1
+    for point in landmarks:
+        x = f"{point_no}_x"
+        y = f"{point_no}_y"
+        z = f"{point_no}_z"
+
+        prepared_landmarks[x] = point[0]
+        prepared_landmarks[y] = point[1]
+        prepared_landmarks[z] = point[2]
+        point_no += 1
+
+    prepared_landmarks["teeth_LAB"] = tr_lab
+    prepared_landmarks["teeth_LUV"] = tr_luv
+    return prepared_landmarks
+
+def df_row_to_pred(row):
+    points = []
+    for pno in range(1, 69):
+        x = f"{pno}_x"
+        y = f"{pno}_y"
+        z = f"{pno}_z"
+        points.append([row[x],row[y],row[z]])
+        # df = df[[x,y,z]]
+        # coord = df[[x, y, z]].iloc[i].values.flatten().tolist()
+        # coord = df[[x,z,y]].iloc[i].values.flatten().tolist()
+        # print(coord)
+    return points
 
 def df2pred(df):
+    """
+    return numpy array matching 3D
+    """
+
     import numpy as np
     frames = []
     for index,row in df.iterrows():
-        points = []
-        for pno in range(1, 69):
-            x = f"{pno}_x"
-            y = f"{pno}_y"
-            z = f"{pno}_z"
-            points.append([row[x],row[y],row[z]])
-            # df = df[[x,y,z]]
-            # coord = df[[x, y, z]].iloc[i].values.flatten().tolist()
-            # coord = df[[x,z,y]].iloc[i].values.flatten().tolist()
-            # print(coord)
+        points = df_row_to_pred(row)
         frames.append(points)
 
     # print(np.array(frames))
@@ -98,17 +145,23 @@ def df2pred(df):
 
 
 def draw2D_from_CSV(csvFilename,delay=.1):
+    import pandas as pd
     df = pd.read_csv(csvFilename)
     draw2D_from_df(df)
 
-def draw2D_from_df(df,delay=.1):
+def draw2D_from_df(df,delay=.05):
     import pandas as pd
+    import numpy as np
     import matplotlib.pyplot as plt
 
     plt.ion()
     fig, ax = plt.subplots()
 
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
     for index, row in df.iterrows():
+        frameno = row['frame#']
+        textstr = f"Frame#: {int(frameno)}"
         X,Y = [],[]
         for pno in range(1, 69):
             x = f'{pno}_x'
@@ -118,6 +171,8 @@ def draw2D_from_df(df,delay=.1):
             Y.append(1000-row[y])   # flip the plot
 
         sc = ax.scatter(X, Y, color='black')
+        ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
+        verticalalignment='top', bbox=props)
         # print(len(X),len(Y))
 
         sc.set_offsets(np.c_[X,Y])
@@ -130,8 +185,7 @@ def draw2D_from_df(df,delay=.1):
 
 
 if __name__ == '__main__':
-    import cv2
-    import face_alignment
+    import os
     import numpy as np
     import matplotlib.image as mpimg
     from matplotlib.pyplot import figure
@@ -142,6 +196,9 @@ if __name__ == '__main__':
     # plt.imshow(frame2)
     # plt.show()
 
-    csvFilename = "D:/GoogleDrive-VMS/Research/lip-reading/datasets/angsawee/avi/v01.pb.csv"
-    csvFilename = "D:/GoogleDrive-VMS/Research/lip-reading/datasets/angsawee/avi/v01.csv"
+    # csvFilename = "D:/GoogleDrive-VMS/Research/lip-reading/datasets/angsawee/avi/v01.pb.csv"
+    # csvFilename = "D:/GoogleDrive-VMS/Research/lip-reading/datasets/angsawee/avi/v01.csv"
+    csvFilename = "D:/GoogleDrive-VMS/Research/lip-reading/datasets/angsawee/avi/v02.pb.csv"
+    filename, file_extension = os.path.splitext(csvFilename)
+    print(f"{filename}.{file_extension}")
     draw2D_from_CSV(csvFilename)
