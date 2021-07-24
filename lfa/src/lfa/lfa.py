@@ -4,7 +4,7 @@ Chayapol Moemeng
 
 NEED IMPROVEMENT
 sum,min,max calculation which is necessary for keyframe detection 
-is in viz() which is optional.
+is in viz() 
 
 
 """
@@ -17,6 +17,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import arff
+# from mlr import profile_box
 
 from lfa import __version__
 
@@ -222,18 +223,22 @@ def angle(row):
     return degree [0,360] or 90?
     """
     x0, y0, x1, y1 = row.x0, row.y0, row.x1, row.y1
-    dp = (x1-x0, y1-y0)
+    # dp = (x1-x0, y1-y0)   # Original
+    dp = (abs(x1-x0), abs(y1-y0))
+    # dp = (y1-y0,x1-x0)
     v = [dp]
     v = np.array(v)
     inv = np.degrees(np.arctan2(*v.T[::-1])) % 360.0
-    # return inv[0]
+    # inv = np.degrees(np.arctan2(*v.T[::-1])) % 180
+    return inv[0]
     degree = inv[0]
     if 90 < degree <= 180:
-        degree -= 90
+        degree = 180 - degree
     elif 180 < degree <= 270:
-        degree -= 180
+        degree = degree - 180
     elif 270 < degree <= 360:
-        degree -= 360
+        degree = 360 - degree
+
     return degree
 
     # inv = np.degrees(np.arctan2(*v.T[::-1])) % 180
@@ -397,6 +402,8 @@ def method4(raw):
 
     corner_x = '49_x'
     corner_y = '49_y'
+    # corner_x = '49_x'
+    # corner_y = '49_y'
 
     dfa = raw[['frame#', 'label','teeth_LAB', 'teeth_LUV']]
     # print("dfa",dfa)
@@ -404,8 +411,11 @@ def method4(raw):
     for pno in range(50, 68):
         x0 = corner_x
         y0 = corner_y
+
         x1 = f'{pno}_x'
         y1 = f'{pno}_y'
+        # x1 = f'{pno}_x'
+        # y1 = f'{pno}_y'
 
         df_for_angle_calc = raw[[x0, y0, x1, y1]].rename(
             columns={x0: "x0", y0: "y0", x1: "x1", y1: "y1"})
@@ -641,10 +651,11 @@ def main(args):
 
     raw_df = pd.read_csv(csv_filename)
     raw_df['label'] = label
-    # print(raw_df['label'])  
-    # TODO no need already calculated since vid2vec
-    # raw_df = calculate_roi_dimension(raw_df)
 
+    # TODO do the profile_box here instead of vid2vec
+    # pred = df2pred(raw_df)
+    # face_landmarks_pb = fix_profile_box(pred)
+    # fl2_pb = flat_dict(face_landmarks_pb, frame_number, tr_lab, tr_luv)
     
 
 
@@ -664,10 +675,11 @@ def main(args):
 
     dfa.to_csv(csv_filename.replace(".csv", "")+f'-m{method}.lfa.csv')
 
-    arff.dump(csv_filename.replace(".csv", "")+f'-m{method}.arff',
-              dfa.values,
-              relation='relation name',
-              names=dfa.columns)
+    """ARFF"""
+    # arff.dump(csv_filename.replace(".csv", "")+f'-m{method}.arff',
+    #           dfa.values,
+    #           relation='relation name',
+    #           names=dfa.columns)
 
     _logger.info("Script ends here")
 

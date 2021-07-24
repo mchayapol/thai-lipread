@@ -1,33 +1,8 @@
 
 from re import X
+from util import csv2pred
 
 
-def csv2pred(filename):
-  """
-  return numpy array matching 3D
-  """
-  import pandas as pd
-  import numpy as np
-  frames = []
-  
-  print(filename)
-  df = pd.read_csv(filename)
-  print(df.columns)
-  
-  for i in range(1,69):
-    x = f"{i}_x"
-    y = f"{i}_y"
-    z = f"{i}_z"
-    # df = df[[x,y,z]]
-    coord = df[[x,y,z]].iloc[i].values.flatten().tolist()
-    # coord = df[[x,z,y]].iloc[i].values.flatten().tolist()
-    # print(coord)
-    frames.append(coord)
-
-  # print(np.array(frames))
-  return np.array(frames)
-  
-    
 
 def __what_is_in_pred(image_filename):
   import face_alignment

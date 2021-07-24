@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-
-from lfa.skeleton import fib
+from vid2vec.skeleton import fib
 
 __author__ = "Chayapol Moemeng"
 __copyright__ = "Chayapol Moemeng"
