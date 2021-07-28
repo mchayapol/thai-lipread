@@ -89,7 +89,7 @@ def export_to_csv(lip_features,output_csv_filename):
                 # Writing headers of CSV file
                 header = r.keys()
                 csv_writer.writerow(header)
-                row_no += 1
+            row_no += 1
 
             # Writing data of CSV file
             csv_writer.writerow(r.values())
@@ -154,6 +154,7 @@ def draw2D_from_df(df,delay=.05):
     import numpy as np
     import matplotlib.pyplot as plt
 
+
     plt.ion()
     fig, ax = plt.subplots()
 
@@ -175,7 +176,10 @@ def draw2D_from_df(df,delay=.05):
         verticalalignment='top', bbox=props)
         # print(len(X),len(Y))
 
-        sc.set_offsets(np.c_[X,Y])
+        # sc.set_offsets(np.c_[X,Y])
+        plt.xlim([0,1000])
+        plt.ylim([0,1000])
+
         fig.canvas.draw_idle()
         plt.pause(delay)
         ax.cla()

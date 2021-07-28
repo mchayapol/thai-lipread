@@ -122,6 +122,9 @@ class Face:
                         # p[2] = 200  # L
                         luv_c += 1
 
+        if pgon.area == 0:
+            print(f"PGON is ZERO lab_c:{lab_c}, luv_c:{luv_c}")
+            return (None, 0, 0, 0, 0, 0, 0)
         tr_lab = lab_c/pgon.area
         tr_luv = luv_c/pgon.area
         # print(lab_c, luv_c, area_mouth, pgon.area)
