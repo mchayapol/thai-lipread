@@ -413,9 +413,15 @@ def method4(raw):
 
 
 def viz(dfa, raw, to_file_only=False):
+    # to facilitate journal paper by removing Teeth LUV as it is unused.
+    include_LUV = False
+    plot_w = 20
+    plot_h = 10
+    subplots_count = 5 if include_LUV else 4
+    
     text_kwargs = dict(ha='left', va='top', fontsize=10, color='tab:gray')
-    fig, axs = plt.subplots(5, sharex=True, sharey=True, gridspec_kw={
-                            'hspace': 0}, figsize=(20, 10))
+    fig, axs = plt.subplots(subplots_count, sharex=True, sharey=True, gridspec_kw={
+                            'hspace': 0}, figsize=(plot_w, plot_h))
     # fig = plt.figure()
     fig.suptitle("Viseme {}".format(csv_filename), fontsize=16)
     fig.text(0.5, 0.04, 'Frame#', ha='center')
@@ -450,31 +456,24 @@ def viz(dfa, raw, to_file_only=False):
 
     # ax = plt.subplot(512,sharex=True)
     ax = axs[1]
-    # ax.set_title('ABS SUM')
-    fig.text(0.13, 0.7, 'ABS SUM', fontsize=14, color='gray')
-    # ax.set_ylabel('Degrees')
-    # ax.set_xlabel('Frame#')
-
-    # ax.figure(figsize=(20, 10))
+    if include_LUV:
+        fig.text(0.13, 0.7, 'ABS SUM', fontsize=14, color='gray')
+    else:
+        fig.text(0.13, 0.66, 'ABS SUM', fontsize=14, color='gray')
     ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
 
-    # fig.show()
 
     # 3. MEAN
     a_cols = [col for col in dfa.columns if 'angle' in col]
-    # dfa["sum"] = dfa[a_cols].mean(axis=1)
+    # dfa["sum"] = dfa[a_cols].mean(axis=1)    
     dfa.loc[:,"mean"] = dfa[a_cols].mean(axis=1).copy(deep=True)
 
     ax = axs[2]
-    # ax = plt.subplot(513)
-    # ax.set_title('MEAN')
-    fig.text(0.13, 0.55, 'MEAN', fontsize=14, color='gray')
-    # ax.set_ylabel('Degrees')
-    # ax.set_xlabel('Frame#')
-    
+    if include_LUV:
+        fig.text(0.13, 0.55, 'MEAN', fontsize=14, color='gray')
+    else:
+        fig.text(0.13, 0.47, 'MEAN', fontsize=14, color='gray')
     ax.plot(dfa.index, dfa['sum'] / dfa['sum'].max())
-
-    # fig.show()
 
     # 3-- MEAN MIN/MAX SIGNAL
     from scipy.signal import argrelextrema
@@ -487,46 +486,26 @@ def viz(dfa, raw, to_file_only=False):
     dfa.loc[:,'max'] = dfa["sum"].iloc[argrelextrema(dfa["sum"].values, np.greater_equal, order=n)[0]]
 
 
-    # Plot results
-    # ax = plt.subplot(514)
+    # SIGNAL Teeth LAB
     ax = axs[3]
-    # ax.set_title('SIGNAL teeth LAB')
-    fig.text(0.13, 0.39, 'SIGNAL teeth LAB', fontsize=14, color='gray')
-    # ax.set_ylabel('Degrees')
-    # ax.set_xlabel('Frame#')
-
-    # ax.scatter(dfa.index, dfa['min'], c='g')
-    # ax.scatter(dfa.index, dfa['max'], c='r')
+    if include_LUV:
+        fig.text(0.13, 0.39, 'SIGNAL teeth LAB', fontsize=14, color='gray')
+    else:
+        fig.text(0.13, 0.27, 'SIGNAL teeth LAB', fontsize=14, color='gray')
     ax.scatter(dfa.index, dfa['min'] / dfa['min'].max())
     ax.scatter(dfa.index, dfa['max'] / dfa['max'].max(), c='r')
 
-    # ax.plot(raw.index, raw['teeth_LAB'], c='y')
-    # ax.ylim((0,1))
-    # ax.plot(raw.index, raw['teeth_LAB_ratio'] * 5, c='y')
     ax.plot(raw.index, raw['teeth_LAB'] * 5, c='y')
-    # ax.plot(dfa.index, dfa['sum'])
 
-    # fig.show()
+    # SIGNAL Teeth LUV
+    if include_LUV:
+        ax = axs[4]
+        fig.text(0.13, 0.23, 'SIGNAL teeth LUV ', fontsize=14, color='gray')
 
-    # 3-- MEAN MIN/MAX
-    # ax = plt.subplot(515)
-    ax = axs[4]
-    # ax.set_title('SIGNAL teeth LUV')
-    fig.text(0.13, 0.23, 'SIGNAL teeth LUV ', fontsize=14, color='gray')
-    # ax.set_ylabel('Degrees')
-    # ax.set_xlabel('Frame#')
+        ax.scatter(dfa.index, dfa['min'] / dfa['min'].max())
+        ax.scatter(dfa.index, dfa['max'] / dfa['max'].max(), c='g')
 
-    # ax.scatter(dfa.index, dfa['min'], c='r')
-    # ax.scatter(dfa.index, dfa['max'], c='g')
-
-    ax.scatter(dfa.index, dfa['min'] / dfa['min'].max())
-    ax.scatter(dfa.index, dfa['max'] / dfa['max'].max(), c='g')
-
-    # ax.plot(raw.index, raw['teeth_LUV'], c='g')
-    # ax.ylim((0,1))
-    # ax.plot(raw.index, raw['teeth_LUV_ratio'] * 5, c='g')
-    ax.plot(raw.index, raw['teeth_LUV'] * 5, c='g')
-    # ax.plot(dfa.index, dfa['sum'])
+        ax.plot(raw.index, raw['teeth_LUV'] * 5, c='g')
 
     if to_file_only:
         fig_filename = csv_filename.replace('.csv', '')+'.png'

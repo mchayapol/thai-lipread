@@ -9,6 +9,8 @@ A longer description of your project goes here...
 This project has been set up using PyScaffold 3.3. For details and usage
 information on PyScaffold see https://pyscaffold.org/.
 
+# Dependencies
+pip install arff
 
 # Setup
 python setup.py develop
@@ -16,6 +18,7 @@ python setup.py develop
 # Sample
 ```
 lfa -m 4 --label v01 D:\GoogleDrive-VMS\Research\lip-reading\datasets\angsawee\avi\run-2021-01-17\v01.csv
+lfa -m 4 --label v01 I:\My Drive\Research\lip-reading\datasets\speakers\data20210731\csv\v01.csv
 ```
 Quiet mode
 ```
@@ -40,7 +43,7 @@ pip install face_recognition
 
 # Scaffold
 conda install -c conda-forge pyscaffold
-python setup.py develop
+
 
 # Classification Model
 http://scikit-learn.sourceforge.net/stable/modules/hmm.html
